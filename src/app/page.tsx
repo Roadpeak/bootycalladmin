@@ -2,14 +2,18 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { isAuthenticated } from '@/lib/api';
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to dashboard after page loads
-    router.push('/dashboard');
+    // Redirect based on authentication status
+    if (isAuthenticated()) {
+      router.push('/dashboard');
+    } else {
+      router.push('/login');
+    }
   }, [router]);
 
   return (
@@ -23,8 +27,8 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">BootyCallAdmin</h1>
-        <p className="text-gray-600 mb-8">Redirecting to dashboard...</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Butical Admin</h1>
+        <p className="text-gray-600 mb-8">Redirecting...</p>
         <div className="flex justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>

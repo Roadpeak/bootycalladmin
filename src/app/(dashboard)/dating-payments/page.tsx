@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { adminService, handleApiError } from '@/lib/api';
+import type { Payment } from '@/types/api';
 import {
     Search,
     Filter,
@@ -12,9 +14,8 @@ import {
     Clock,
     Check,
     X,
-    Info,
     ChevronDown,
-    User,
+    User as UserIcon,
     Heart,
     RefreshCw,
     AlertCircle,
@@ -24,213 +25,98 @@ import {
 export default function DatingPaymentsPage() {
     const [activeTab, setActiveTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [expandedPayment, setExpandedPayment] = useState<number | null>(null);
+    const [expandedPayment, setExpandedPayment] = useState<string | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
-    const [selectedPayment, setSelectedPayment] = useState<any>(null);
+    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0
+    });
 
-    // Constants
-    const SIGNUP_FEE = 500; // Standard signup amount in KSh
-    const PREMIUM_SUBSCRIPTION = 1500; // Monthly premium subscription
-    const BOOST_FEE = 300; // Profile boost fee
+    // Fetch payments from API
+    useEffect(() => {
+        fetchPayments();
+    }, [currentPage, searchQuery, activeTab]);
 
-    // Mock data - in a real app, you'd fetch this from your API
+    async function fetchPayments() {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const params: any = {
+                page: currentPage,
+                limit: 20,
+                search: searchQuery || undefined
+            };
+
+            // Add filter params based on active tab
+            if (activeTab === 'subscription') params.type = 'DATING_SUBSCRIPTION';
+            if (activeTab === 'completed') params.status = 'COMPLETED';
+            if (activeTab === 'pending') params.status = 'PENDING';
+            if (activeTab === 'failed') params.status = 'FAILED';
+            if (activeTab === 'refunded') params.status = 'REFUNDED';
+
+            const response = await adminService.getPayments(params);
+
+            if (response.data) {
+                setPayments(response.data);
+            }
+
+            if (response.pagination) {
+                setPagination(response.pagination);
+            }
+        } catch (err) {
+            setError(handleApiError(err));
+            console.error('Error fetching payments:', err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Calculate stats from fetched payments
     const stats = {
-        totalSignups: 12476,
-        signupsRevenue: 6238000,
-        totalSubscriptions: 3845,
-        subscriptionsRevenue: 5767500,
-        todaySignups: 74,
-        todayRevenue: 59200,
-        growthRate: 8
+        totalRevenue: payments.reduce((sum, p) => p.status === 'COMPLETED' ? sum + p.amount : sum, 0),
+        totalPayments: pagination.total,
+        completedPayments: payments.filter(p => p.status === 'COMPLETED').length,
+        pendingPayments: payments.filter(p => p.status === 'PENDING').length
     };
 
-    const payments = [
-        {
-            id: 1,
-            userId: 1234,
-            userName: 'Jessica K',
-            email: 'jessica@example.com',
-            phone: '254712345678',
-            userImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300',
-            amount: SIGNUP_FEE,
-            type: 'signup',
-            date: '2025-10-21 14:32',
-            status: 'completed',
-            paymentMethod: 'M-Pesa',
-            transactionId: 'SP123456789',
-            ip: '41.204.187.xxx',
-            device: 'iPhone 15, Safari',
-            location: 'Nairobi, Kenya'
-        },
-        {
-            id: 2,
-            userId: 2345,
-            userName: 'Michael S',
-            email: 'michael@example.com',
-            phone: '254723456789',
-            userImage: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300',
-            amount: PREMIUM_SUBSCRIPTION,
-            type: 'premium',
-            date: '2025-10-21 13:21',
-            status: 'completed',
-            paymentMethod: 'M-Pesa',
-            transactionId: 'PM234567890',
-            ip: '41.204.188.xxx',
-            device: 'Samsung Galaxy S30, Chrome',
-            location: 'Nairobi, Kenya'
-        },
-        {
-            id: 3,
-            userId: 3456,
-            userName: 'Sophia W',
-            email: 'sophia@example.com',
-            phone: '254734567890',
-            userImage: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=300',
-            amount: SIGNUP_FEE,
-            type: 'signup',
-            date: '2025-10-21 12:45',
-            status: 'pending',
-            paymentMethod: 'M-Pesa',
-            transactionId: 'SP345678901',
-            ip: '41.215.245.xxx',
-            device: 'Tecno Spark 20, Chrome',
-            location: 'Mombasa, Kenya'
-        },
-        {
-            id: 4,
-            userId: 4567,
-            userName: 'David M',
-            email: 'david@example.com',
-            phone: '254745678901',
-            userImage: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300',
-            amount: BOOST_FEE,
-            type: 'boost',
-            date: '2025-10-21 11:12',
-            status: 'completed',
-            paymentMethod: 'M-Pesa',
-            transactionId: 'BO456789012',
-            ip: '41.204.190.xxx',
-            device: 'MacBook Air, Chrome',
-            location: 'Nairobi, Kenya'
-        },
-        {
-            id: 5,
-            userId: 5678,
-            userName: 'Emily T',
-            email: 'emily@example.com',
-            phone: '254756789012',
-            userImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300',
-            amount: SIGNUP_FEE,
-            type: 'signup',
-            date: '2025-10-21 10:48',
-            status: 'failed',
-            paymentMethod: 'M-Pesa',
-            transactionId: 'SP567890123',
-            ip: '105.160.23.xxx',
-            device: 'Android 16, Chrome',
-            location: 'Nakuru, Kenya'
-        },
-        {
-            id: 6,
-            userId: 6789,
-            userName: 'James N',
-            email: 'james@example.com',
-            phone: '254767890123',
-            userImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300',
-            amount: PREMIUM_SUBSCRIPTION,
-            type: 'premium',
-            date: '2025-10-21 09:30',
-            status: 'completed',
-            paymentMethod: 'Credit Card',
-            transactionId: 'PM678901234',
-            ip: '41.204.192.xxx',
-            device: 'iPhone 15 Pro, Safari',
-            location: 'Nairobi, Kenya'
-        },
-        {
-            id: 7,
-            userId: 7890,
-            userName: 'Lily R',
-            email: 'lily@example.com',
-            phone: '254778901234',
-            userImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300',
-            amount: PREMIUM_SUBSCRIPTION,
-            type: 'premium-renewal',
-            date: '2025-10-21 08:22',
-            status: 'completed',
-            paymentMethod: 'M-Pesa',
-            transactionId: 'PR789012345',
-            ip: '41.215.247.xxx',
-            device: 'Xiaomi Redmi Note 13, Chrome',
-            location: 'Mombasa, Kenya'
-        }
-    ];
+    // Filter payments (client-side for tabs not handled by API)
+    const filteredPayments = payments;
 
-    // Filter payments based on active tab and search query
-    const filteredPayments = payments
-        .filter(payment => {
-            if (activeTab === 'all') return true;
-            if (activeTab === 'signup') return payment.type === 'signup';
-            if (activeTab === 'premium') return payment.type === 'premium' || payment.type === 'premium-renewal';
-            if (activeTab === 'boost') return payment.type === 'boost';
-            if (activeTab === 'completed') return payment.status === 'completed';
-            if (activeTab === 'pending') return payment.status === 'pending';
-            if (activeTab === 'failed') return payment.status === 'failed';
-            return true;
-        })
-        .filter(payment => {
-            if (!searchQuery) return true;
-            const query = searchQuery.toLowerCase();
-            return (
-                payment.userName.toLowerCase().includes(query) ||
-                payment.email.toLowerCase().includes(query) ||
-                payment.phone.includes(query) ||
-                payment.transactionId.toLowerCase().includes(query)
-            );
-        });
-
-    const togglePaymentDetails = (id: number) => {
+    const togglePaymentDetails = (id: string) => {
         setExpandedPayment(expandedPayment === id ? null : id);
     };
 
-    const handleRefund = (payment: any) => {
+    const handleRefund = (payment: Payment) => {
         setSelectedPayment(payment);
         setShowRefundModal(true);
     };
 
     const processRefund = () => {
-        // In a real app, you would make an API call here
         console.log('Processing refund for payment ID:', selectedPayment?.id);
         setShowRefundModal(false);
-        // Then refresh data
-    };
-
-    const getPaymentTypeIcon = (type: string) => {
-        switch (type) {
-            case 'signup':
-                return <User className="h-4 w-4 text-blue-500" />;
-            case 'premium':
-            case 'premium-renewal':
-                return <Heart className="h-4 w-4 text-pink-500" />;
-            case 'boost':
-                return <Zap className="h-4 w-4 text-amber-500" />;
-            default:
-                return <CreditCard className="h-4 w-4 text-gray-500" />;
-        }
+        fetchPayments();
     };
 
     const getPaymentTypeLabel = (type: string) => {
         switch (type) {
-            case 'signup':
-                return 'Signup Fee';
-            case 'premium':
-                return 'Premium Subscription';
-            case 'premium-renewal':
-                return 'Premium Renewal';
-            case 'boost':
-                return 'Profile Boost';
+            case 'DATING_SUBSCRIPTION':
+                return 'Dating Subscription';
+            case 'VIP_SUBSCRIPTION':
+                return 'VIP Subscription';
+            case 'UNLOCK_ESCORT':
+                return 'Unlock Escort';
+            case 'REFUND':
+                return 'Refund';
             default:
-                return 'Payment';
+                return type;
         }
     };
 
@@ -255,41 +141,12 @@ export default function DatingPaymentsPage() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-medium text-gray-500">Signup Revenue</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-2">KSh {stats.signupsRevenue.toLocaleString()}</p>
-                            <p className="text-xs text-gray-500 mt-1">{stats.totalSignups.toLocaleString()} users</p>
-                        </div>
-                        <div className="bg-blue-100 p-3 rounded-lg">
-                            <User className="h-6 w-6 text-blue-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">Premium Revenue</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-2">KSh {stats.subscriptionsRevenue.toLocaleString()}</p>
-                            <p className="text-xs text-gray-500 mt-1">{stats.totalSubscriptions.toLocaleString()} subscribers</p>
-                        </div>
-                        <div className="bg-pink-100 p-3 rounded-lg">
-                            <Heart className="h-6 w-6 text-pink-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-2">KSh {stats.todayRevenue.toLocaleString()}</p>
-                            <div className="flex items-center text-green-500 text-xs mt-1">
-                                <TrendingUp className="h-3 w-3 mr-1" />
-                                <span>{stats.growthRate}% increase</span>
-                            </div>
+                            <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+                            <p className="text-2xl font-bold text-gray-900 mt-2">KSh {stats.totalRevenue.toLocaleString('en-US')}</p>
+                            <p className="text-xs text-gray-500 mt-1">From dating payments</p>
                         </div>
                         <div className="bg-green-100 p-3 rounded-lg">
-                            <Calendar className="h-6 w-6 text-green-600" />
+                            <TrendingUp className="h-6 w-6 text-green-600" />
                         </div>
                     </div>
                 </div>
@@ -297,12 +154,38 @@ export default function DatingPaymentsPage() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-medium text-gray-500">New Signups Today</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-2">{stats.todaySignups}</p>
-                            <p className="text-xs text-gray-500 mt-1">{SIGNUP_FEE} KSh per signup</p>
+                            <p className="text-sm font-medium text-gray-500">Total Payments</p>
+                            <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalPayments.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500 mt-1">All time</p>
                         </div>
-                        <div className="bg-purple-100 p-3 rounded-lg">
-                            <CreditCard className="h-6 w-6 text-purple-600" />
+                        <div className="bg-blue-100 p-3 rounded-lg">
+                            <CreditCard className="h-6 w-6 text-blue-600" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Completed</p>
+                            <p className="text-2xl font-bold text-gray-900 mt-2">{stats.completedPayments}</p>
+                            <p className="text-xs text-gray-500 mt-1">Successful transactions</p>
+                        </div>
+                        <div className="bg-green-100 p-3 rounded-lg">
+                            <Check className="h-6 w-6 text-green-600" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Pending</p>
+                            <p className="text-2xl font-bold text-gray-900 mt-2">{stats.pendingPayments}</p>
+                            <p className="text-xs text-gray-500 mt-1">Awaiting confirmation</p>
+                        </div>
+                        <div className="bg-yellow-100 p-3 rounded-lg">
+                            <Clock className="h-6 w-6 text-yellow-600" />
                         </div>
                     </div>
                 </div>
@@ -340,34 +223,14 @@ export default function DatingPaymentsPage() {
                         All Payments
                     </button>
                     <button
-                        onClick={() => setActiveTab('signup')}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap flex items-center ${activeTab === 'signup'
-                            ? 'text-indigo-600 border-b-2 border-indigo-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        <User className="h-4 w-4 mr-1" />
-                        Signup Fees
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('premium')}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap flex items-center ${activeTab === 'premium'
+                        onClick={() => setActiveTab('subscription')}
+                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap flex items-center ${activeTab === 'subscription'
                             ? 'text-indigo-600 border-b-2 border-indigo-600'
                             : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         <Heart className="h-4 w-4 mr-1" />
-                        Premium
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('boost')}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap flex items-center ${activeTab === 'boost'
-                            ? 'text-indigo-600 border-b-2 border-indigo-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        <Zap className="h-4 w-4 mr-1" />
-                        Boosts
+                        Subscriptions
                     </button>
                     <button
                         onClick={() => setActiveTab('completed')}
@@ -396,245 +259,244 @@ export default function DatingPaymentsPage() {
                     >
                         Failed
                     </button>
+                    <button
+                        onClick={() => setActiveTab('refunded')}
+                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'refunded'
+                            ? 'text-indigo-600 border-b-2 border-indigo-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Refunded
+                    </button>
                 </div>
 
-                {/* Payments */}
-                <div className="divide-y divide-gray-100">
-                    {filteredPayments.map((payment) => (
-                        <div key={payment.id} className="hover:bg-gray-50">
-                            <div
-                                className="p-4 sm:px-6 cursor-pointer"
-                                onClick={() => togglePaymentDetails(payment.id)}
-                            >
-                                <div className="flex flex-col sm:flex-row justify-between">
-                                    <div className="flex items-center">
-                                        {/* User */}
-                                        <div className="flex-shrink-0 mr-4">
-                                            <img
-                                                src={payment.userImage}
-                                                alt={payment.userName}
-                                                className="h-10 w-10 rounded-full object-cover"
-                                            />
-                                        </div>
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    </div>
+                )}
 
-                                        {/* User Details */}
-                                        <div>
-                                            <div className="text-sm font-medium text-gray-900 flex items-center">
-                                                {payment.userName}
-                                                <div className="ml-2 flex items-center">
-                                                    {getPaymentTypeIcon(payment.type)}
-                                                    <span className="ml-1 text-xs text-gray-600">{getPaymentTypeLabel(payment.type)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-0.5">
-                                                {payment.email} • {payment.phone}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Right Side */}
-                                    <div className="flex items-center mt-3 sm:mt-0">
-                                        {/* Date */}
-                                        <div className="text-xs text-gray-500 mr-4 flex items-center">
-                                            <Clock className="h-3.5 w-3.5 mr-1 text-gray-400" />
-                                            {payment.date}
-                                        </div>
-
-                                        {/* Amount */}
-                                        <div className="font-medium text-gray-900 mr-4">
-                                            KSh {payment.amount}
-                                        </div>
-
-                                        {/* Status */}
-                                        <div>
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${payment.status === 'completed'
-                                                ? 'bg-green-100 text-green-800'
-                                                : payment.status === 'pending'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                {payment.status}
-                                            </span>
-                                        </div>
-
-                                        {/* Dropdown Indicator */}
-                                        <ChevronDown
-                                            className={`h-5 w-5 ml-4 text-gray-400 transition-transform ${expandedPayment === payment.id ? 'transform rotate-180' : ''
-                                                }`}
-                                        />
-                                    </div>
+                {/* Error State */}
+                {error && (
+                    <div className="p-6">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-start">
+                                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                                <div>
+                                    <h3 className="text-sm font-medium text-red-800">Error Loading Payments</h3>
+                                    <p className="text-sm text-red-700 mt-1">{error}</p>
                                 </div>
                             </div>
-
-                            {/* Expanded Details */}
-                            {expandedPayment === payment.id && (
-                                <div className="px-4 pb-4 sm:px-6 bg-gray-50 border-t border-gray-100 animate-fadeIn">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                                        <div>
-                                            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                                                Payment Details
-                                            </h4>
-                                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                                <dt className="text-sm text-gray-500">Payment Type</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{getPaymentTypeLabel(payment.type)}</dd>
-
-                                                <dt className="text-sm text-gray-500">Transaction ID</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.transactionId}</dd>
-
-                                                <dt className="text-sm text-gray-500">Payment Method</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.paymentMethod}</dd>
-
-                                                <dt className="text-sm text-gray-500">Amount</dt>
-                                                <dd className="text-sm font-medium text-gray-900">KSh {payment.amount}</dd>
-
-                                                <dt className="text-sm text-gray-500">Date & Time</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.date}</dd>
-                                            </dl>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                                                User Information
-                                            </h4>
-                                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                                <dt className="text-sm text-gray-500">User ID</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.userId}</dd>
-
-                                                <dt className="text-sm text-gray-500">Full Name</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.userName}</dd>
-
-                                                <dt className="text-sm text-gray-500">Email</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.email}</dd>
-
-                                                <dt className="text-sm text-gray-500">Phone</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.phone}</dd>
-
-                                                <dt className="text-sm text-gray-500">IP Address</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.ip}</dd>
-
-                                                <dt className="text-sm text-gray-500">Device</dt>
-                                                <dd className="text-sm font-medium text-gray-900">{payment.device}</dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="mt-4 flex justify-end space-x-3">
-                                        <Link href={`/dating-payments/${payment.id}`}>
-                                            <button className="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                                                View Full Details
-                                            </button>
-                                        </Link>
-                                        {payment.status === 'pending' && (
-                                            <button
-                                                className="text-green-600 hover:text-green-900 text-sm font-medium flex items-center"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    // In a real app, this would call an API to update the status
-                                                    console.log('Manually approving payment:', payment.id);
-                                                }}
-                                            >
-                                                <Check className="h-4 w-4 mr-1" />
-                                                Approve Payment
-                                            </button>
-                                        )}
-                                        {payment.status === 'completed' && payment.date.includes('2025-10-21') && (
-                                            <button
-                                                className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleRefund(payment);
-                                                }}
-                                            >
-                                                <RefreshCw className="h-4 w-4 mr-1" />
-                                                Process Refund
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
                         </div>
-                    ))}
-                </div>
+                    </div>
+                )}
+
+                {/* Payments */}
+                {!loading && !error && (
+                    <div className="divide-y divide-gray-100">
+                        {filteredPayments.map((payment) => {
+                            const userName = payment.user
+                                ? (payment.user.displayName || `${payment.user.firstName} ${payment.user.lastName}`)
+                                : payment.phone;
+
+                            return (
+                                <div key={payment.id} className="hover:bg-gray-50">
+                                    <div
+                                        className="p-4 sm:px-6 cursor-pointer"
+                                        onClick={() => togglePaymentDetails(payment.id)}
+                                    >
+                                        <div className="flex flex-col sm:flex-row justify-between">
+                                            <div className="flex items-center">
+                                                {/* User Icon */}
+                                                <div className="flex-shrink-0 mr-4">
+                                                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                        <UserIcon className="h-5 w-5 text-indigo-600" />
+                                                    </div>
+                                                </div>
+
+                                                {/* User Details */}
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900 flex items-center">
+                                                        {userName}
+                                                        <span className="ml-2 text-xs text-gray-600">{getPaymentTypeLabel(payment.type)}</span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                        {payment.user?.email || payment.phone}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Right Side */}
+                                            <div className="flex items-center mt-3 sm:mt-0">
+                                                {/* Date */}
+                                                <div className="text-xs text-gray-500 mr-4 flex items-center">
+                                                    <Clock className="h-3.5 w-3.5 mr-1 text-gray-400" />
+                                                    {new Date(payment.createdAt).toLocaleDateString()}
+                                                </div>
+
+                                                {/* Amount */}
+                                                <div className="font-medium text-gray-900 mr-4">
+                                                    KSh {payment.amount.toLocaleString()}
+                                                </div>
+
+                                                {/* Status */}
+                                                <div>
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                        payment.status === 'COMPLETED'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : payment.status === 'PENDING'
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : payment.status === 'REFUNDED'
+                                                                    ? 'bg-blue-100 text-blue-800'
+                                                                    : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                        {payment.status}
+                                                    </span>
+                                                </div>
+
+                                                {/* Dropdown Indicator */}
+                                                <ChevronDown
+                                                    className={`h-5 w-5 ml-4 text-gray-400 transition-transform ${
+                                                        expandedPayment === payment.id ? 'transform rotate-180' : ''
+                                                    }`}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Expanded Details */}
+                                    {expandedPayment === payment.id && (
+                                        <div className="px-4 pb-4 sm:px-6 bg-gray-50 border-t border-gray-100">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                                <div>
+                                                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                                                        Payment Details
+                                                    </h4>
+                                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                                        <dt className="text-sm text-gray-500">Payment Type</dt>
+                                                        <dd className="text-sm font-medium text-gray-900">{getPaymentTypeLabel(payment.type)}</dd>
+
+                                                        {payment.mpesaReceiptNumber && (
+                                                            <>
+                                                                <dt className="text-sm text-gray-500">M-Pesa Receipt</dt>
+                                                                <dd className="text-sm font-medium text-gray-900">{payment.mpesaReceiptNumber}</dd>
+                                                            </>
+                                                        )}
+
+                                                        {payment.mpesaTransactionId && (
+                                                            <>
+                                                                <dt className="text-sm text-gray-500">Transaction ID</dt>
+                                                                <dd className="text-sm font-medium text-gray-900">{payment.mpesaTransactionId}</dd>
+                                                            </>
+                                                        )}
+
+                                                        <dt className="text-sm text-gray-500">Amount</dt>
+                                                        <dd className="text-sm font-medium text-gray-900">KSh {payment.amount.toLocaleString()}</dd>
+
+                                                        <dt className="text-sm text-gray-500">Date & Time</dt>
+                                                        <dd className="text-sm font-medium text-gray-900">
+                                                            {new Date(payment.createdAt).toLocaleString()}
+                                                        </dd>
+
+                                                        <dt className="text-sm text-gray-500">Status</dt>
+                                                        <dd className="text-sm font-medium text-gray-900">{payment.status}</dd>
+                                                    </dl>
+                                                </div>
+
+                                                <div>
+                                                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                                                        User Information
+                                                    </h4>
+                                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                                        {payment.user && (
+                                                            <>
+                                                                <dt className="text-sm text-gray-500">User ID</dt>
+                                                                <dd className="text-sm font-medium text-gray-900">{payment.user.id || payment.userId}</dd>
+
+                                                                <dt className="text-sm text-gray-500">Name</dt>
+                                                                <dd className="text-sm font-medium text-gray-900">{userName}</dd>
+
+                                                                <dt className="text-sm text-gray-500">Email</dt>
+                                                                <dd className="text-sm font-medium text-gray-900">{payment.user.email}</dd>
+                                                            </>
+                                                        )}
+
+                                                        <dt className="text-sm text-gray-500">Phone</dt>
+                                                        <dd className="text-sm font-medium text-gray-900">{payment.phone}</dd>
+                                                    </dl>
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            {payment.status === 'COMPLETED' && (
+                                                <div className="mt-4 flex justify-end">
+                                                    <button
+                                                        className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleRefund(payment);
+                                                        }}
+                                                    >
+                                                        <RefreshCw className="h-4 w-4 mr-1" />
+                                                        Process Refund
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* Empty state */}
-                {filteredPayments.length === 0 && (
+                {!loading && !error && filteredPayments.length === 0 && (
                     <div className="text-center py-12">
                         <p className="text-gray-500">No payments found matching your criteria</p>
                     </div>
                 )}
 
                 {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                    <div className="text-sm text-gray-500">
-                        Showing <span className="font-medium">{filteredPayments.length}</span> payments
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500">
-                            Previous
-                        </button>
-                        <button className="px-3 py-1 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-800">
-                            1
-                        </button>
-                        <button className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500">
-                            Next
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Pricing Card */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Dating Service Pricing</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <div className="bg-blue-100 p-3 rounded-full mr-4">
-                                <User className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <h4 className="text-lg font-medium text-gray-900">Signup Fee</h4>
-                                <p className="text-3xl font-bold text-gray-900 mt-1">KSh {SIGNUP_FEE}</p>
-                            </div>
+                {!loading && !error && filteredPayments.length > 0 && (
+                    <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                            Showing <span className="font-medium">{((pagination.page - 1) * pagination.limit) + 1}</span> to{' '}
+                            <span className="font-medium">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{' '}
+                            <span className="font-medium">{pagination.total}</span> payments
                         </div>
-                        <p className="text-sm text-gray-500 mt-4">
-                            One-time payment required to complete profile setup and begin using the dating platform.
-                        </p>
-                    </div>
-
-                    <div className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <div className="bg-pink-100 p-3 rounded-full mr-4">
-                                <Heart className="h-6 w-6 text-pink-600" />
-                            </div>
-                            <div>
-                                <h4 className="text-lg font-medium text-gray-900">Premium</h4>
-                                <p className="text-3xl font-bold text-gray-900 mt-1">KSh {PREMIUM_SUBSCRIPTION}</p>
-                                <span className="text-xs text-gray-500">per month</span>
-                            </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Previous
+                            </button>
+                            {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-3 py-1 border border-gray-300 rounded-md text-sm ${
+                                        currentPage === page
+                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            : 'text-gray-500 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === pagination.totalPages}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Next
+                            </button>
                         </div>
-                        <p className="text-sm text-gray-500 mt-4">
-                            Monthly subscription that provides unlimited messaging, profile highlights, and advanced search filters.
-                        </p>
                     </div>
-
-                    <div className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <div className="bg-amber-100 p-3 rounded-full mr-4">
-                                <Zap className="h-6 w-6 text-amber-600" />
-                            </div>
-                            <div>
-                                <h4 className="text-lg font-medium text-gray-900">Profile Boost</h4>
-                                <p className="text-3xl font-bold text-gray-900 mt-1">KSh {BOOST_FEE}</p>
-                                <span className="text-xs text-gray-500">per boost</span>
-                            </div>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-4">
-                            Temporarily increases profile visibility in search results and discovery for 24 hours.
-                        </p>
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Refund Modal */}
@@ -652,41 +514,28 @@ export default function DatingPaymentsPage() {
                         </div>
 
                         <div className="p-6">
-                            <div className="mb-6 flex items-center">
-                                <img
-                                    src={selectedPayment.userImage}
-                                    alt={selectedPayment.userName}
-                                    className="h-12 w-12 rounded-full mr-4"
-                                />
-                                <div>
-                                    <p className="text-lg font-medium text-gray-900">{selectedPayment.userName}</p>
-                                    <p className="text-sm text-gray-600">{selectedPayment.email} • {selectedPayment.phone}</p>
-                                </div>
-                            </div>  <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-6">
+                            <div className="mb-6">
+                                <p className="text-sm text-gray-600">Payment ID: {selectedPayment.id}</p>
+                                <p className="text-lg font-medium text-gray-900 mt-1">KSh {selectedPayment.amount.toLocaleString()}</p>
+                            </div>
+
+                            <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-6">
                                 <div className="flex items-start">
-                                    <div className="flex-shrink-0">
-                                        <AlertCircle className="h-5 w-5 text-red-600" />
-                                    </div>
+                                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                                     <div className="ml-3">
                                         <h3 className="text-sm font-medium text-red-800">Refund Warning</h3>
-                                        <div className="mt-2 text-sm text-red-700">
-                                            <p>You are about to process a refund for this payment. This action cannot be undone and will:</p>
-                                            <ul className="list-disc list-inside mt-2 space-y-1">
-                                                <li>Return KSh {selectedPayment.amount} to the user's payment method</li>
-                                                <li>Cancel any associated service or subscription benefits</li>
-                                                <li>Create a record of this refund in the payment history</li>
-                                            </ul>
-                                        </div>
+                                        <p className="text-sm text-red-700 mt-1">
+                                            This action cannot be undone. The amount will be refunded to the user's payment method.
+                                        </p>
                                     </div>
                                 </div>
-                            </div>  <div className="mb-6">
+                            </div>
+
+                            <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Refund Reason
                                 </label>
-                                <select
-                                    className="w-full border border-gray-300 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    defaultValue="request"
-                                >
+                                <select className="w-full border border-gray-300 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <option value="request">Customer Request</option>
                                     <option value="duplicate">Duplicate Payment</option>
                                     <option value="error">Processing Error</option>
@@ -694,14 +543,15 @@ export default function DatingPaymentsPage() {
                                     <option value="fraudulent">Fraudulent Transaction</option>
                                 </select>
                             </div>
+
                             <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Additional Notes
                                 </label>
                                 <textarea
-                                    className="w-full border border-gray-300 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    className="w-full border border-gray-300 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     rows={3}
-                                    placeholder="Enter any additional information about this refund..."
+                                    placeholder="Enter any additional information..."
                                 ></textarea>
                             </div>
 
@@ -726,4 +576,4 @@ export default function DatingPaymentsPage() {
             )}
         </div>
     );
- } 
+}

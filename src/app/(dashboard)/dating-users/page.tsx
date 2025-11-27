@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { adminService, handleApiError } from '@/lib/api';
+import type { User } from '@/types/api';
 import {
     Search,
     Filter,
@@ -9,7 +11,7 @@ import {
     Users,
     Calendar,
     Shield,
-    User,
+    User as UserIcon,
     Heart,
     MessageCircle,
     MapPin,
@@ -23,186 +25,71 @@ import {
 export default function DatingUsersPage() {
     const [activeTab, setActiveTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [showSuspendModal, setShowSuspendModal] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0
+    });
 
-    // Mock data - in a real app, you'd fetch this from your API
     const stats = {
-        totalUsers: 15362,
-        activeToday: 3456,
-        activeThisWeek: 7842,
-        verifiedUsers: 12455,
-        premiumUsers: 3845,
-        newThisMonth: 2134,
-        reportedUsers: 43
+        totalUsers: pagination.total,
+        activeToday: users.filter(u => u.isActive).length,
+        activeThisWeek: users.filter(u => u.isActive).length,
+        verifiedUsers: users.filter(u => u.isActive).length,
+        premiumUsers: users.filter(u => u.datingSubscriptionExpiresAt && new Date(u.datingSubscriptionExpiresAt) > new Date()).length,
+        newThisMonth: users.length,
+        reportedUsers: 0
     };
 
-    const users = [
-        {
-            id: 1,
-            name: 'Jessica K',
-            age: 28,
-            gender: 'Female',
-            location: 'Westlands, Nairobi',
-            email: 'jessica@example.com',
-            phone: '254712345678',
-            photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300',
-            joinDate: '2025-09-10',
-            lastActive: '2025-10-21 14:32',
-            status: 'active',
-            isVerified: true,
-            isPremium: true,
-            isReported: false,
-            reportCount: 0,
-            likesCount: 142,
-            matchesCount: 37,
-            messageCount: 684
-        },
-        {
-            id: 2,
-            name: 'Michael S',
-            age: 32,
-            gender: 'Male',
-            location: 'Kilimani, Nairobi',
-            email: 'michael@example.com',
-            phone: '254723456789',
-            photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300',
-            joinDate: '2025-09-15',
-            lastActive: '2025-10-21 13:21',
-            status: 'active',
-            isVerified: true,
-            isPremium: true,
-            isReported: false,
-            reportCount: 0,
-            likesCount: 87,
-            matchesCount: 24,
-            messageCount: 356
-        },
-        {
-            id: 3,
-            name: 'Sophia W',
-            age: 25,
-            gender: 'Female',
-            location: 'Lavington, Nairobi',
-            email: 'sophia@example.com',
-            phone: '254734567890',
-            photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=300',
-            joinDate: '2025-09-20',
-            lastActive: '2025-10-21 12:45',
-            status: 'inactive',
-            isVerified: false,
-            isPremium: false,
-            isReported: false,
-            reportCount: 0,
-            likesCount: 65,
-            matchesCount: 18,
-            messageCount: 243
-        },
-        {
-            id: 4,
-            name: 'David M',
-            age: 29,
-            gender: 'Male',
-            location: 'Kileleshwa, Nairobi',
-            email: 'david@example.com',
-            phone: '254745678901',
-            photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300',
-            joinDate: '2025-09-25',
-            lastActive: '2025-10-21 11:12',
-            status: 'active',
-            isVerified: true,
-            isPremium: false,
-            isReported: false,
-            reportCount: 0,
-            likesCount: 112,
-            matchesCount: 31,
-            messageCount: 476
-        },
-        {
-            id: 5,
-            name: 'Emily T',
-            age: 27,
-            gender: 'Female',
-            location: 'Karen, Nairobi',
-            email: 'emily@example.com',
-            phone: '254756789012',
-            photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300',
-            joinDate: '2025-09-30',
-            lastActive: '2025-10-21 10:48',
-            status: 'active',
-            isVerified: true,
-            isPremium: false,
-            isReported: true,
-            reportCount: 2,
-            likesCount: 94,
-            matchesCount: 22,
-            messageCount: 317
-        },
-        {
-            id: 6,
-            name: 'James N',
-            age: 31,
-            gender: 'Male',
-            location: 'South B, Nairobi',
-            email: 'james@example.com',
-            phone: '254767890123',
-            photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300',
-            joinDate: '2025-10-05',
-            lastActive: '2025-10-21 09:30',
-            status: 'active',
-            isVerified: true,
-            isPremium: true,
-            isReported: false,
-            reportCount: 0,
-            likesCount: 136,
-            matchesCount: 42,
-            messageCount: 731
-        },
-        {
-            id: 7,
-            name: 'Lily R',
-            age: 24,
-            gender: 'Female',
-            location: 'Parklands, Nairobi',
-            email: 'lily@example.com',
-            phone: '254778901234',
-            photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300',
-            joinDate: '2025-10-10',
-            lastActive: '2025-10-21 08:22',
-            status: 'suspended',
-            isVerified: true,
-            isPremium: false,
-            isReported: true,
-            reportCount: 5,
-            likesCount: 75,
-            matchesCount: 15,
-            messageCount: 189
-        }
-    ];
+    // Fetch users from API
+    useEffect(() => {
+        fetchUsers();
+    }, [currentPage, searchQuery]);
 
-    // Filter users based on active tab and search query
-    const filteredUsers = users
-        .filter(user => {
-            if (activeTab === 'all') return true;
-            if (activeTab === 'active') return user.status === 'active';
-            if (activeTab === 'inactive') return user.status === 'inactive';
-            if (activeTab === 'suspended') return user.status === 'suspended';
-            if (activeTab === 'reported') return user.isReported;
-            if (activeTab === 'premium') return user.isPremium;
-            if (activeTab === 'verified') return user.isVerified;
-            return true;
-        })
-        .filter(user => {
-            if (!searchQuery) return true;
-            const query = searchQuery.toLowerCase();
-            return (
-                user.name.toLowerCase().includes(query) ||
-                user.email.toLowerCase().includes(query) ||
-                user.phone.includes(query) ||
-                user.location.toLowerCase().includes(query)
-            );
-        });
+    async function fetchUsers() {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await adminService.getUsers({
+                page: currentPage,
+                limit: 20,
+                role: 'DATING_USER',
+                search: searchQuery || undefined
+            });
+
+            if (response.data) {
+                setUsers(response.data);
+            }
+
+            if (response.pagination) {
+                setPagination(response.pagination);
+            }
+        } catch (err) {
+            setError(handleApiError(err));
+            console.error('Error fetching users:', err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Filter users based on active tab
+    const filteredUsers = users.filter(user => {
+        if (activeTab === 'all') return true;
+        if (activeTab === 'active') return user.isActive;
+        if (activeTab === 'inactive') return !user.isActive;
+        if (activeTab === 'suspended') return !user.isActive;
+        if (activeTab === 'premium') return user.datingSubscriptionExpiresAt && new Date(user.datingSubscriptionExpiresAt) > new Date();
+        return true;
+    });
 
     const toggleSelectAll = () => {
         if (selectedUsers.length === filteredUsers.length) {
@@ -212,7 +99,7 @@ export default function DatingUsersPage() {
         }
     };
 
-    const toggleSelectUser = (id: number) => {
+    const toggleSelectUser = (id: string) => {
         if (selectedUsers.includes(id)) {
             setSelectedUsers(selectedUsers.filter(userId => userId !== id));
         } else {
@@ -220,17 +107,25 @@ export default function DatingUsersPage() {
         }
     };
 
-    const handleSuspendUser = (user: any) => {
+    const handleSuspendUser = (user: User) => {
         setSelectedUser(user);
         setShowSuspendModal(true);
     };
 
-    const confirmSuspend = () => {
-        // In a real app, you would make an API call here
-        console.log('Suspending user:', selectedUser?.id);
-        setShowSuspendModal(false);
-        // Then refresh data
-    };
+    async function confirmSuspend() {
+        if (!selectedUser) return;
+
+        try {
+            await adminService.updateUserStatus(selectedUser.id, {
+                isActive: false
+            });
+
+            setShowSuspendModal(false);
+            fetchUsers(); // Refresh the list
+        } catch (err) {
+            alert(handleApiError(err));
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -390,179 +285,227 @@ export default function DatingUsersPage() {
                     </button>
                 </div>
 
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                    <div className="p-6">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-start">
+                                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                                <div>
+                                    <h3 className="text-sm font-medium text-red-800">Error Loading Users</h3>
+                                    <p className="text-sm text-red-700 mt-1">{error}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                                        onChange={toggleSelectAll}
-                                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                                    />
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    User
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Contact
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Location
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Activity
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredUsers.map((user) => (
-                                <tr key={user.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                {!loading && !error && (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <input
                                             type="checkbox"
-                                            checked={selectedUsers.includes(user.id)}
-                                            onChange={() => toggleSelectUser(user.id)}
+                                            checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                                            onChange={toggleSelectAll}
                                             className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
                                         />
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="h-10 w-10 flex-shrink-0 relative">
-                                                <img className="h-10 w-10 rounded-full object-cover" src={user.photo} alt={user.name} />
-                                                {user.isPremium && (
-                                                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-pink-500 rounded-full border-2 border-white" title="Premium Member"></div>
-                                                )}
-                                            </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-gray-900 flex items-center">
-                                                    {user.name}, {user.age}
-                                                    {user.isVerified && (
-                                                        <span className="ml-1 text-indigo-600" title="Verified Profile">
-                                                            <Shield className="h-3.5 w-3.5" />
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="text-sm text-gray-500">{user.gender}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{user.email}</div>
-                                        <div className="text-sm text-gray-500">{user.phone}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div className="flex items-center">
-                                            <MapPin className="h-3.5 w-3.5 mr-1 text-gray-400" />
-                                            {user.location}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex flex-col space-y-1">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === 'active'
-                                                ? 'bg-green-100 text-green-800'
-                                                : user.status === 'inactive'
-                                                    ? 'bg-gray-100 text-gray-800'
-                                                    : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                {user.status}
-                                            </span>
-                                            {user.isReported && (
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                    {user.reportCount} reports
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div className="flex flex-col">
-                                            <div className="text-gray-600 font-medium mb-1">Joined: {user.joinDate}</div>
-                                            <div className="flex gap-4">
-                                                <span className="flex items-center text-gray-500" title="Likes">
-                                                    <Heart className="h-3.5 w-3.5 mr-1 text-pink-500" />
-                                                    {user.likesCount}
-                                                </span>
-                                                <span className="flex items-center text-gray-500" title="Matches">
-                                                    <Check className="h-3.5 w-3.5 mr-1 text-indigo-500" />
-                                                    {user.matchesCount}
-                                                </span>
-                                                <span className="flex items-center text-gray-500" title="Messages">
-                                                    <MessageCircle className="h-3.5 w-3.5 mr-1 text-green-500" />
-                                                    {user.messageCount}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex items-center space-x-3">
-                                            <Link href={`/dating-users/${user.id}`}>
-                                                <button className="text-indigo-600 hover:text-indigo-900">
-                                                    View
-                                                </button>
-                                            </Link>
-                                            <div className="relative group">
-                                                <button className="text-gray-400 hover:text-gray-500">
-                                                    <MoreHorizontal className="h-5 w-5" />
-                                                </button>
-                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
-                                                    <Link href={`/dating-users/${user.id}/edit`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                        Edit Profile
-                                                    </Link>
-                                                    {user.status !== 'suspended' && (
-                                                        <button
-                                                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                                            onClick={() => handleSuspendUser(user)}
-                                                        >
-                                                            Suspend Account
-                                                        </button>
-                                                    )}
-                                                    {user.status === 'suspended' && (
-                                                        <button className="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100">
-                                                            Reactivate Account
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        User
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Contact
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Subscription
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Wallet
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredUsers.map((user) => {
+                                    const isPremium = user.datingSubscriptionExpiresAt && new Date(user.datingSubscriptionExpiresAt) > new Date();
+                                    const displayName = user.displayName || `${user.firstName} ${user.lastName}`;
+
+                                    return (
+                                        <tr key={user.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedUsers.includes(user.id)}
+                                                    onChange={() => toggleSelectUser(user.id)}
+                                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="h-10 w-10 flex-shrink-0 relative">
+                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                            <UserIcon className="h-5 w-5 text-indigo-600" />
+                                                        </div>
+                                                        {isPremium && (
+                                                            <div className="absolute -top-1 -right-1 h-4 w-4 bg-pink-500 rounded-full border-2 border-white" title="Premium Member"></div>
+                                                        )}
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-gray-900 flex items-center">
+                                                            {displayName}
+                                                        </div>
+                                                        <div className="text-sm text-gray-500">{user.role}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">{user.email}</div>
+                                                <div className="text-sm text-gray-500">{user.phone}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {isPremium ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                                                            Premium
+                                                        </span>
+                                                        <span className="text-xs text-gray-500 mt-1">
+                                                            Until {new Date(user.datingSubscriptionExpiresAt!).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400">Free</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    user.isActive
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {user.isActive ? 'Active' : 'Suspended'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <div className="flex flex-col">
+                                                    <div className="text-gray-900 font-medium">
+                                                        KSh {user.walletBalance.toLocaleString()}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        Joined {new Date(user.createdAt).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div className="flex items-center space-x-3">
+                                                    <Link href={`/dating-users/${user.id}`}>
+                                                        <button className="text-indigo-600 hover:text-indigo-900">
+                                                            View
+                                                        </button>
+                                                    </Link>
+                                                    <div className="relative group">
+                                                        <button className="text-gray-400 hover:text-gray-500">
+                                                            <MoreHorizontal className="h-5 w-5" />
+                                                        </button>
+                                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+                                                            <Link href={`/dating-users/${user.id}/edit`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                                Edit Profile
+                                                            </Link>
+                                                            {user.isActive ? (
+                                                                <button
+                                                                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                                                    onClick={() => handleSuspendUser(user)}
+                                                                >
+                                                                    Suspend Account
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    className="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100"
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            await adminService.updateUserStatus(user.id, { isActive: true });
+                                                                            fetchUsers();
+                                                                        } catch (err) {
+                                                                            alert(handleApiError(err));
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Reactivate Account
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {/* Empty state */}
-                {filteredUsers.length === 0 && (
+                {!loading && !error && filteredUsers.length === 0 && (
                     <div className="text-center py-12">
                         <p className="text-gray-500">No users found matching your criteria</p>
                     </div>
                 )}
 
                 {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                    <div className="text-sm text-gray-500">
-                        Showing <span className="font-medium">{filteredUsers.length}</span> users
+                {!loading && !error && filteredUsers.length > 0 && (
+                    <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                            Showing <span className="font-medium">{((pagination.page - 1) * pagination.limit) + 1}</span> to{' '}
+                            <span className="font-medium">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{' '}
+                            <span className="font-medium">{pagination.total}</span> users
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Previous
+                            </button>
+                            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-3 py-1 border border-gray-300 rounded-md text-sm ${
+                                        currentPage === page
+                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            : 'text-gray-500 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === pagination.totalPages}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500">
-                            Previous
-                        </button>
-                        <button className="px-3 py-1 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-800">
-                            1
-                        </button>
-                        <button className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500">
-                            Next
-                        </button>
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Suspend Account Modal */}
@@ -581,13 +524,13 @@ export default function DatingUsersPage() {
 
                         <div className="p-6">
                             <div className="mb-6 flex items-center">
-                                <img
-                                    src={selectedUser.photo}
-                                    alt={selectedUser.name}
-                                    className="h-12 w-12 rounded-full mr-4 object-cover"
-                                />
+                                <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mr-4">
+                                    <UserIcon className="h-6 w-6 text-indigo-600" />
+                                </div>
                                 <div>
-                                    <p className="text-lg font-medium text-gray-900">{selectedUser.name}, {selectedUser.age}</p>
+                                    <p className="text-lg font-medium text-gray-900">
+                                        {selectedUser.displayName || `${selectedUser.firstName} ${selectedUser.lastName}`}
+                                    </p>
                                     <p className="text-sm text-gray-600">{selectedUser.email} • {selectedUser.phone}</p>
                                 </div>
                             </div>
