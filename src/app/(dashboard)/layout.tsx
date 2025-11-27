@@ -52,9 +52,9 @@ export default function DashboardLayout({
         </button>
 
         {/* Logo */}
-        <div className="p-5 border-b border-gray-700 bg-gradient-to-r from-indigo-600 to-purple-600">
+        <div className="p-5 border-b border-gray-700 bg-gradient-to-r from-red-700 to-amber-800">
           <h1 className="text-xl font-bold text-white">Butical Admin</h1>
-          <p className="text-xs text-indigo-100 mt-1">Management Dashboard</p>
+          <p className="text-xs text-red-100 mt-1">Management Dashboard</p>
         </div>
 
         {/* Navigation */}
@@ -183,7 +183,7 @@ export default function DashboardLayout({
           {/* Mobile Menu Button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors mr-4"
+            className="lg:hidden p-2 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors mr-4"
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -194,7 +194,7 @@ export default function DashboardLayout({
 
           <div className="flex items-center space-x-2">
             {/* Notifications */}
-            <button className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors relative">
+            <button className="p-2 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors relative">
               <Bell className="h-5 w-5" />
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
             </button>
@@ -208,7 +208,7 @@ export default function DashboardLayout({
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center px-3 py-2 text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-sm"
+                className="flex items-center px-3 py-2 text-sm text-white bg-gradient-to-r from-red-700 to-amber-800 hover:from-red-800 hover:to-amber-900 rounded-lg transition-all shadow-sm"
                 title="Logout"
               >
                 <LogOut className="h-4 w-4" />

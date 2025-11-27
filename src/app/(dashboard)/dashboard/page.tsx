@@ -46,14 +46,15 @@ export default function DashboardPage() {
           setRecentPayments(paymentsResponse.data);
         }
 
-        // Fetch pending escort verifications
+        // Fetch pending escort verifications (only unverified)
         const escortsResponse = await adminService.getEscorts({
-          verified: false,
           page: 1,
-          limit: 3
+          limit: 100 // Get more to filter properly
         });
         if (escortsResponse.data) {
-          setPendingEscorts(escortsResponse.data);
+          // Filter to only show unverified escorts
+          const unverifiedEscorts = escortsResponse.data.filter(escort => !escort.verified);
+          setPendingEscorts(unverifiedEscorts.slice(0, 3)); // Take only first 3
         }
 
         // Generate activity data from payments for the last 7 days
@@ -126,7 +127,7 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -165,9 +166,9 @@ export default function DashboardPage() {
 
   // User type breakdown from API
   const userTypes = [
-    { name: 'Dating Users', count: stats.users.datingUsers, icon: Heart, color: 'bg-pink-500' },
-    { name: 'Hookup Users', count: stats.users.hookupUsers, icon: MessageCircle, color: 'bg-purple-500' },
-    { name: 'Escorts', count: stats.users.escorts, icon: UserIcon, color: 'bg-blue-500' }
+    { name: 'Dating Users', count: stats.users.datingUsers, icon: Heart, color: 'bg-red-600' },
+    { name: 'Hookup Users', count: stats.users.hookupUsers, icon: MessageCircle, color: 'bg-amber-700' },
+    { name: 'Escorts', count: stats.users.escorts, icon: UserIcon, color: 'bg-orange-600' }
   ];
 
   return (
@@ -260,15 +261,15 @@ export default function DashboardPage() {
               <h3 className="text-sm font-medium text-gray-700">7-Day Activity Overview</h3>
               <div className="flex items-center space-x-4 text-xs">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-pink-500 rounded mr-1"></div>
+                  <div className="w-3 h-3 bg-red-600 rounded mr-1"></div>
                   <span className="text-gray-600">Dating</span>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-purple-500 rounded mr-1"></div>
+                  <div className="w-3 h-3 bg-amber-700 rounded mr-1"></div>
                   <span className="text-gray-600">Hookup</span>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded mr-1"></div>
+                  <div className="w-3 h-3 bg-orange-600 rounded mr-1"></div>
                   <span className="text-gray-600">Escort</span>
                 </div>
               </div>
@@ -278,16 +279,16 @@ export default function DashboardPage() {
               <AreaChart data={activityData}>
                 <defs>
                   <linearGradient id="colorDating" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorHookup" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#b45309" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#b45309" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorEscort" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -316,7 +317,7 @@ export default function DashboardPage() {
                 <Area
                   type="monotone"
                   dataKey="dating"
-                  stroke="#ec4899"
+                  stroke="#dc2626"
                   fillOpacity={1}
                   fill="url(#colorDating)"
                   strokeWidth={2}
@@ -324,7 +325,7 @@ export default function DashboardPage() {
                 <Area
                   type="monotone"
                   dataKey="hookup"
-                  stroke="#a855f7"
+                  stroke="#b45309"
                   fillOpacity={1}
                   fill="url(#colorHookup)"
                   strokeWidth={2}
@@ -332,7 +333,7 @@ export default function DashboardPage() {
                 <Area
                   type="monotone"
                   dataKey="escort"
-                  stroke="#3b82f6"
+                  stroke="#ea580c"
                   fillOpacity={1}
                   fill="url(#colorEscort)"
                   strokeWidth={2}
