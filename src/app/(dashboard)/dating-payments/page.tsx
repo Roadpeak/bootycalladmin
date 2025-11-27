@@ -142,7 +142,7 @@ export default function DatingPaymentsPage() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-2">KSh {stats.totalRevenue.toLocaleString('en-US')}</p>
+                            <p className="text-2xl font-bold text-gray-900 mt-2">KSh {Number(stats.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                             <p className="text-xs text-gray-500 mt-1">From dating payments</p>
                         </div>
                         <div className="bg-green-100 p-3 rounded-lg">
