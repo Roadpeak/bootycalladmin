@@ -525,7 +525,7 @@ export default function DatingPaymentsPage() {
                                     <div className="ml-3">
                                         <h3 className="text-sm font-medium text-red-800">Refund Warning</h3>
                                         <p className="text-sm text-red-700 mt-1">
-                                            This action cannot be undone. The amount will be refunded to the user's payment method.
+                                            This action cannot be undone. The amount will be refunded to the user&apos;s payment method.
                                         </p>
                                     </div>
                                 </div>

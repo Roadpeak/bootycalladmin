@@ -145,7 +145,7 @@ export default function HookupPaymentsPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
+              <p className="text-sm font-medium text-gray-500">Today&apos;s Revenue</p>
               <p className="text-2xl font-bold text-gray-900 mt-2">KSh {stats.todayRevenue.toLocaleString('en-US')}</p>
               <div className="flex items-center text-green-500 text-xs mt-1">
                 <TrendingUp className="h-3 w-3 mr-1" />

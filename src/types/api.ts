@@ -104,6 +104,7 @@ export interface UserListParams {
   limit?: number;
   role?: UserRole;
   search?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface UpdateUserStatusRequest {
@@ -176,6 +177,7 @@ export interface EscortListParams {
   verified?: boolean;
   vipStatus?: boolean;
   search?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface VerifyEscortRequest {
@@ -205,6 +207,7 @@ export interface PaymentListParams {
   type?: PaymentType;
   status?: PaymentStatus;
   search?: string; // Search by phone, email, transaction ID, etc.
+  [key: string]: string | number | boolean | undefined;
 }
 
 // Withdrawal Types
@@ -228,6 +231,7 @@ export interface WithdrawalListParams {
   limit?: number;
   status?: WithdrawalStatus;
   userId?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ProcessWithdrawalRequest {
@@ -261,6 +265,7 @@ export interface ReferralListParams {
   status?: ReferralStatus;
   referrerUserId?: string;
   level?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ApproveReferralRequest {
@@ -288,6 +293,7 @@ export interface ReviewListParams {
   escortId?: string;
   userId?: string;
   visible?: boolean;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ToggleReviewVisibilityRequest {

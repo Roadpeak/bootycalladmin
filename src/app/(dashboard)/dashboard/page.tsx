@@ -14,6 +14,7 @@ import {
   MessageCircle,
   CheckSquare
 } from 'lucide-react';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { adminService, handleApiError } from '@/lib/api';
 import type { DashboardStats, Payment, Escort } from '@/types/api';
 
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const [pendingEscorts, setPendingEscorts] = useState<Escort[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activityData, setActivityData] = useState<any[]>([]);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -53,6 +55,50 @@ export default function DashboardPage() {
         if (escortsResponse.data) {
           setPendingEscorts(escortsResponse.data);
         }
+
+        // Generate activity data from payments for the last 7 days
+        const allPaymentsResponse = await adminService.getPayments({
+          page: 1,
+          limit: 100
+        });
+
+        if (allPaymentsResponse.data) {
+          const last7Days = generateLast7Days();
+          const activityMap = new Map<string, { dating: number; hookup: number; escort: number; revenue: number }>();
+
+          // Initialize all days
+          last7Days.forEach(day => {
+            activityMap.set(day, { dating: 0, hookup: 0, escort: 0, revenue: 0 });
+          });
+
+          // Process payments
+          allPaymentsResponse.data.forEach((payment) => {
+            const paymentDate = new Date(payment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            if (activityMap.has(paymentDate) && payment.status === 'COMPLETED') {
+              const dayData = activityMap.get(paymentDate)!;
+
+              if (payment.type === 'DATING_SUBSCRIPTION') {
+                dayData.dating += 1;
+              } else if (payment.type === 'VIP_SUBSCRIPTION') {
+                dayData.hookup += 1;
+              } else if (payment.type === 'UNLOCK_ESCORT') {
+                dayData.escort += 1;
+              }
+
+              dayData.revenue += payment.amount;
+              activityMap.set(paymentDate, dayData);
+            }
+          });
+
+          // Convert to array for chart
+          const chartData = last7Days.map(day => ({
+            date: day,
+            ...activityMap.get(day)!
+          }));
+
+          setActivityData(chartData);
+        }
       } catch (err) {
         setError(handleApiError(err));
         console.error('Error fetching dashboard data:', err);
@@ -63,6 +109,17 @@ export default function DashboardPage() {
 
     fetchDashboardData();
   }, []);
+
+  // Helper function to generate last 7 days
+  function generateLast7Days(): string[] {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+    return days;
+  }
 
   // Loading state
   if (loading) {
@@ -197,9 +254,91 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* User Activity Graph would go here */}
-          <div className="mt-6 h-72 bg-gray-50 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">User Activity Graph</p>
+          {/* User Activity Graph */}
+          <div className="mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-medium text-gray-700">7-Day Activity Overview</h3>
+              <div className="flex items-center space-x-4 text-xs">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-pink-500 rounded mr-1"></div>
+                  <span className="text-gray-600">Dating</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-purple-500 rounded mr-1"></div>
+                  <span className="text-gray-600">Hookup</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-1"></div>
+                  <span className="text-gray-600">Escort</span>
+                </div>
+              </div>
+            </div>
+
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={activityData}>
+                <defs>
+                  <linearGradient id="colorDating" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorHookup" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorEscort" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '12px'
+                  }}
+                  formatter={(value: any, name: string) => {
+                    if (name === 'revenue') return [`KSh ${value.toLocaleString('en-US')}`, 'Revenue'];
+                    return [value, name.charAt(0).toUpperCase() + name.slice(1)];
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="dating"
+                  stroke="#ec4899"
+                  fillOpacity={1}
+                  fill="url(#colorDating)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="hookup"
+                  stroke="#a855f7"
+                  fillOpacity={1}
+                  fill="url(#colorHookup)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="escort"
+                  stroke="#3b82f6"
+                  fillOpacity={1}
+                  fill="url(#colorEscort)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
