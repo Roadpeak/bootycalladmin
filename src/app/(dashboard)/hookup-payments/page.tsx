@@ -381,7 +381,7 @@ export default function HookupPaymentsPage() {
 
                               <dt className="text-sm text-gray-500">Wallet Balance</dt>
                               <dd className="text-sm font-medium text-gray-900">
-                                KSh {payment.user.walletBalance.toLocaleString()}
+                                KSh {(payment.user.walletBalance || 0).toLocaleString()}
                               </dd>
                             </>
                           ) : (
