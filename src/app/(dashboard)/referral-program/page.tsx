@@ -87,7 +87,7 @@ export default function ReferralProgramPage() {
     completedReferrals: referrals.filter(r => r.status === 'COMPLETED').length,
     totalRewards: referrals
       .filter(r => r.status === 'COMPLETED')
-      .reduce((sum, r) => sum + r.rewardAmount, 0)
+      .reduce((sum, r) => sum + Number(r.rewardAmount), 0)
   };
 
   return (
@@ -152,7 +152,7 @@ export default function ReferralProgramPage() {
             <div>
               <h2 className="text-sm font-medium text-gray-500">Total Rewards Paid</h2>
               <p className="text-2xl font-bold text-gray-900 mt-2">
-                KSh {stats.totalRewards.toLocaleString()}
+                KSh {Number(stats.totalRewards).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
