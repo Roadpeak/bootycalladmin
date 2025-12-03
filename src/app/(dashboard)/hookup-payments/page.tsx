@@ -101,10 +101,10 @@ export default function HookupPaymentsPage() {
 
   // Calculate stats from payments
   const stats = {
-    totalRevenue: payments.reduce((sum, p) => sum + p.amount, 0),
+    totalRevenue: payments.reduce((sum, p) => sum + Number(p.amount), 0),
     todayRevenue: payments
       .filter(p => new Date(p.createdAt).toDateString() === new Date().toDateString())
-      .reduce((sum, p) => sum + p.amount, 0),
+      .reduce((sum, p) => sum + Number(p.amount), 0),
     todayPayments: payments.filter(p =>
       new Date(p.createdAt).toDateString() === new Date().toDateString()
     ).length,

@@ -81,7 +81,7 @@ export default function DatingPaymentsPage() {
 
     // Calculate stats from fetched payments
     const stats = {
-        totalRevenue: payments.reduce((sum, p) => p.status === 'COMPLETED' ? sum + p.amount : sum, 0),
+        totalRevenue: payments.reduce((sum, p) => p.status === 'COMPLETED' ? sum + Number(p.amount) : sum, 0),
         totalPayments: pagination.total,
         completedPayments: payments.filter(p => p.status === 'COMPLETED').length,
         pendingPayments: payments.filter(p => p.status === 'PENDING').length
