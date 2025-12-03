@@ -230,7 +230,7 @@ export default function EscortDetailPage() {
                     <Star
                       key={i}
                       className={`h-4 w-4 ${
-                        i < Math.round(escort.averageRating)
+                        i < Math.round(escort.averageRating || 0)
                           ? 'text-yellow-400 fill-current'
                           : 'text-gray-300'
                       }`}
@@ -238,11 +238,11 @@ export default function EscortDetailPage() {
                   ))}
                 </div>
                 <span className="ml-2 text-sm text-gray-600">
-                  {escort.averageRating.toFixed(1)} ({escort.reviewCount} reviews)
+                  {(escort.averageRating || 0).toFixed(1)} ({escort.reviewCount || 0} reviews)
                 </span>
                 <span className="ml-4 text-sm text-gray-600 flex items-center">
                   <Eye className="h-4 w-4 mr-1" />
-                  {escort.totalViews.toLocaleString()} views
+                  {(escort.totalViews || 0).toLocaleString()} views
                 </span>
               </div>
             </div>
