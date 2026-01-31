@@ -2,6 +2,7 @@ import { api } from './client';
 import { API_ENDPOINTS } from './config';
 import type {
   DashboardStats,
+  PlatformEarnings,
   User,
   UserListParams,
   UpdateUserStatusRequest,
@@ -33,6 +34,14 @@ export const adminService = {
    */
   async getDashboardStats(): Promise<DashboardStats> {
     const response = await api.get<DashboardStats>(API_ENDPOINTS.ADMIN_DASHBOARD);
+    return response.data!;
+  },
+
+  /**
+   * Get platform earnings breakdown
+   */
+  async getPlatformEarnings(): Promise<PlatformEarnings> {
+    const response = await api.get<PlatformEarnings>(API_ENDPOINTS.ADMIN_EARNINGS);
     return response.data!;
   },
 

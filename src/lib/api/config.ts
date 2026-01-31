@@ -1,12 +1,12 @@
 // API Configuration
 export const API_CONFIG = {
   // Base URLs - configure based on environment
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.lovebiteglobal.com/api/v1',
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1',
 
   // Alternative URLs
   PRODUCTION_DOMAIN: 'https://api.lovebiteglobal.com/api/v1',
   PRODUCTION_IP: 'http://165.227.22.118/api/v1',
-  DEVELOPMENT: 'http://localhost:3000/api/v1',
+  DEVELOPMENT: 'http://localhost:4000/api/v1',
 
   // Timeout settings
   TIMEOUT: 30000, // 30 seconds
@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
 
   // Admin Dashboard
   ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_EARNINGS: '/admin/earnings',
 
   // Admin Users Management
   ADMIN_USERS: '/admin/users',

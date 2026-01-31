@@ -81,6 +81,53 @@ export interface DashboardStats {
   };
 }
 
+// Platform Earnings Types
+export interface PlatformEarnings {
+  revenue: {
+    dating: {
+      total: number;
+      count: number;
+      platformShare: number;
+      referralShare: number;
+    };
+    vip: {
+      total: number;
+      count: number;
+      platformShare: number;
+      referralShare: number;
+    };
+    unlock: {
+      total: number;
+      count: number;
+      platformShare: number;
+      escortShare: number;
+    };
+    totalRevenue: number;
+  };
+  payouts: {
+    referrals: {
+      total: number;
+      count: number;
+    };
+    escorts: {
+      total: number;
+      count: number;
+    };
+    totalPayouts: number;
+  };
+  platformEarnings: {
+    fromDating: number;
+    fromVip: number;
+    fromUnlocks: number;
+    total: number;
+  };
+  summary: {
+    grossRevenue: number;
+    totalPayouts: number;
+    netPlatformEarnings: number;
+  };
+}
+
 // User Types
 export interface User {
   id: string;
