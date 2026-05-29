@@ -25,6 +25,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activityData, setActivityData] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -275,71 +280,77 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={activityData}>
-                <defs>
-                  <linearGradient id="colorDating" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorHookup" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#b45309" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#b45309" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorEscort" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    padding: '12px'
-                  }}
-                  formatter={(value: any, name: string) => {
-                    if (name === 'revenue') return [`KSh ${value.toLocaleString('en-US')}`, 'Revenue'];
-                    return [value, name.charAt(0).toUpperCase() + name.slice(1)];
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="dating"
-                  stroke="#dc2626"
-                  fillOpacity={1}
-                  fill="url(#colorDating)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="hookup"
-                  stroke="#b45309"
-                  fillOpacity={1}
-                  fill="url(#colorHookup)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="escort"
-                  stroke="#ea580c"
-                  fillOpacity={1}
-                  fill="url(#colorEscort)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {mounted ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={activityData}>
+                  <defs>
+                    <linearGradient id="colorDating" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorHookup" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#b45309" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#b45309" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorEscort" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}
+                    formatter={(value: any, name: string) => {
+                      if (name === 'revenue') return [`KSh ${value.toLocaleString('en-US')}`, 'Revenue'];
+                      return [value, name.charAt(0).toUpperCase() + name.slice(1)];
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="dating"
+                    stroke="#dc2626"
+                    fillOpacity={1}
+                    fill="url(#colorDating)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="hookup"
+                    stroke="#b45309"
+                    fillOpacity={1}
+                    fill="url(#colorHookup)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="escort"
+                    stroke="#ea580c"
+                    fillOpacity={1}
+                    fill="url(#colorEscort)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center bg-gray-50 rounded-lg">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-700"></div>
+              </div>
+            )}
           </div>
         </div>
 
