@@ -405,6 +405,60 @@ export interface UpdatePlanRequest {
   isActive?: boolean;
 }
 
+// ==================== Advertisements ====================
+
+export type AdActionType = 'LINK' | 'WHATSAPP' | 'CALL';
+
+export interface Advertisement {
+  id: string;
+  name: string;
+  detail: string | null;
+  imageUrl: string;
+  actionType: AdActionType;
+  /** URL for LINK; a normalised 254… phone number for WHATSAPP and CALL. */
+  actionValue: string;
+  actionLabel: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  impressions: number;
+  clickCount: number;
+  createdAt: string;
+}
+
+export interface AdInputRequest {
+  name: string;
+  detail?: string | null;
+  imageUrl: string;
+  actionType: AdActionType;
+  actionValue: string;
+  actionLabel?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export interface AdAnalytics {
+  ads: {
+    id: string;
+    name: string;
+    actionType: AdActionType;
+    isActive: boolean;
+    impressions: number;
+    clickCount: number;
+    clickThroughRate: number;
+    createdAt: string;
+  }[];
+  totals: {
+    impressions: number;
+    clicks: number;
+    clickThroughRate: number;
+  };
+  series: { adId: string; day: string; clicks: number }[];
+}
+
 // Error Types
 export interface ApiError {
   status: 'error';

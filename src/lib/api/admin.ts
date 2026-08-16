@@ -26,6 +26,9 @@ import type {
   UpdateRevenueSplitRequest,
   SubscriptionPlan,
   UpdatePlanRequest,
+  Advertisement,
+  AdInputRequest,
+  AdAnalytics,
 } from '@/types/api';
 
 /**
@@ -208,5 +211,29 @@ export const adminService = {
       data
     );
     return response.data!;
+  },
+  // ==================== Advertisements ====================
+  async getAds(): Promise<ApiResponse<Advertisement[]>> {
+    return await api.get<Advertisement[]>(API_ENDPOINTS.ADMIN_ADS);
+  },
+
+  async createAd(data: AdInputRequest): Promise<Advertisement> {
+    const response = await api.post<Advertisement>(API_ENDPOINTS.ADMIN_ADS, data);
+    return response.data!;
+  },
+
+  async updateAd(id: string, data: Partial<AdInputRequest>): Promise<Advertisement> {
+    const response = await api.patch<Advertisement>(API_ENDPOINTS.ADMIN_AD_BY_ID(id), data);
+    return response.data!;
+  },
+
+  async deleteAd(id: string): Promise<void> {
+    await api.delete(API_ENDPOINTS.ADMIN_AD_BY_ID(id));
+  },
+
+  async getAdAnalytics(days?: number): Promise<ApiResponse<AdAnalytics>> {
+    return await api.get<AdAnalytics>(API_ENDPOINTS.ADMIN_AD_ANALYTICS, {
+      params: days ? { days } : undefined,
+    });
   },
 };

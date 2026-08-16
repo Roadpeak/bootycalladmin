@@ -63,6 +63,11 @@ export const API_ENDPOINTS = {
   ADMIN_SUBSCRIPTION_PLANS: '/admin/settings/plans/all',
   ADMIN_CREATE_PLAN: '/admin/settings/plans',
   ADMIN_UPDATE_PLAN: (id: string) => `/admin/settings/plans/${id}`,
+
+  // Advertisements
+  ADMIN_ADS: '/admin/ads',
+  ADMIN_AD_BY_ID: (id: string) => `/admin/ads/${id}`,
+  ADMIN_AD_ANALYTICS: '/admin/ads/analytics',
 } as const;
 
 // Storage keys for tokens
