@@ -53,6 +53,16 @@ export const API_ENDPOINTS = {
   // Admin Reviews
   ADMIN_REVIEWS: '/admin/reviews',
   ADMIN_TOGGLE_REVIEW_VISIBILITY: (id: string) => `/admin/reviews/${id}/visibility`,
+
+  // Platform Settings
+  ADMIN_SETTINGS: '/admin/settings',
+  ADMIN_UPDATE_SETTING: (key: string) => `/admin/settings/${key}`,
+  ADMIN_REVENUE_SPLITS: '/admin/settings/revenue-splits/all',
+  ADMIN_UPDATE_REVENUE_SPLIT: (scope: string) =>
+    `/admin/settings/revenue-splits/${scope}`,
+  ADMIN_SUBSCRIPTION_PLANS: '/admin/settings/plans/all',
+  ADMIN_CREATE_PLAN: '/admin/settings/plans',
+  ADMIN_UPDATE_PLAN: (id: string) => `/admin/settings/plans/${id}`,
 } as const;
 
 // Storage keys for tokens

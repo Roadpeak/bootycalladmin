@@ -347,6 +347,64 @@ export interface ToggleReviewVisibilityRequest {
   visible: boolean;
 }
 
+// ==================== Platform Settings ====================
+
+export type EscortTier = 'REGULAR' | 'PRIME' | 'VIP' | 'VVIP';
+
+/** Payment families that each carry their own revenue split. */
+export type RevenueScope =
+  | 'ESCORT_SUBSCRIPTION'
+  | 'DATING_SUBSCRIPTION'
+  | 'UNLOCK_ESCORT';
+
+export interface PlatformSetting {
+  id: string;
+  key: string;
+  value: string;
+  valueType: 'NUMBER' | 'BOOLEAN' | 'STRING';
+  category: string;
+  description: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Percentages of a payment. Validated server-side to total exactly 100 —
+ * anything else would leave money unallocated or over-allocated.
+ */
+export interface RevenueSplit {
+  id: string;
+  scope: RevenueScope;
+  platformPercent: string | number;
+  serviceFeePercent: string | number;
+  level1Percent: string | number;
+  level2Percent: string | number;
+  escortPercent: string | number;
+  updatedAt: string;
+}
+
+export interface UpdateRevenueSplitRequest {
+  platformPercent: number;
+  serviceFeePercent: number;
+  level1Percent: number;
+  level2Percent: number;
+  escortPercent: number;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  tier: EscortTier;
+  durationDays: number;
+  price: string | number;
+  label: string | null;
+  isActive: boolean;
+}
+
+export interface UpdatePlanRequest {
+  price?: number;
+  label?: string;
+  isActive?: boolean;
+}
+
 // Error Types
 export interface ApiError {
   status: 'error';
