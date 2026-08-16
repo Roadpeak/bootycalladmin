@@ -21,6 +21,14 @@ import type {
   ReviewListParams,
   ToggleReviewVisibilityRequest,
   ApiResponse,
+  PlatformSetting,
+  RevenueSplit,
+  UpdateRevenueSplitRequest,
+  SubscriptionPlan,
+  UpdatePlanRequest,
+  Advertisement,
+  AdInputRequest,
+  AdAnalytics,
 } from '@/types/api';
 
 /**
@@ -154,5 +162,78 @@ export const adminService = {
       data
     );
     return response.data!;
+  },
+  // ==================== Platform Settings ====================
+  /**
+   * All platform settings (withdrawal limits, prices, feature toggles).
+   */
+  async getSettings(): Promise<ApiResponse<PlatformSetting[]>> {
+    return await api.get<PlatformSetting[]>(API_ENDPOINTS.ADMIN_SETTINGS);
+  },
+
+  async updateSetting(key: string, value: string): Promise<PlatformSetting> {
+    const response = await api.patch<PlatformSetting>(
+      API_ENDPOINTS.ADMIN_UPDATE_SETTING(key),
+      { value }
+    );
+    return response.data!;
+  },
+
+  async getRevenueSplits(): Promise<ApiResponse<RevenueSplit[]>> {
+    return await api.get<RevenueSplit[]>(API_ENDPOINTS.ADMIN_REVENUE_SPLITS);
+  },
+
+  /**
+   * Saves a split. The server rejects anything that does not total exactly
+   * 100%, so the caller should surface the error message verbatim.
+   */
+  async updateRevenueSplit(
+    scope: string,
+    data: UpdateRevenueSplitRequest
+  ): Promise<RevenueSplit> {
+    const response = await api.put<RevenueSplit>(
+      API_ENDPOINTS.ADMIN_UPDATE_REVENUE_SPLIT(scope),
+      data
+    );
+    return response.data!;
+  },
+
+  async getSubscriptionPlans(): Promise<ApiResponse<SubscriptionPlan[]>> {
+    return await api.get<SubscriptionPlan[]>(API_ENDPOINTS.ADMIN_SUBSCRIPTION_PLANS);
+  },
+
+  async updateSubscriptionPlan(
+    id: string,
+    data: UpdatePlanRequest
+  ): Promise<SubscriptionPlan> {
+    const response = await api.patch<SubscriptionPlan>(
+      API_ENDPOINTS.ADMIN_UPDATE_PLAN(id),
+      data
+    );
+    return response.data!;
+  },
+  // ==================== Advertisements ====================
+  async getAds(): Promise<ApiResponse<Advertisement[]>> {
+    return await api.get<Advertisement[]>(API_ENDPOINTS.ADMIN_ADS);
+  },
+
+  async createAd(data: AdInputRequest): Promise<Advertisement> {
+    const response = await api.post<Advertisement>(API_ENDPOINTS.ADMIN_ADS, data);
+    return response.data!;
+  },
+
+  async updateAd(id: string, data: Partial<AdInputRequest>): Promise<Advertisement> {
+    const response = await api.patch<Advertisement>(API_ENDPOINTS.ADMIN_AD_BY_ID(id), data);
+    return response.data!;
+  },
+
+  async deleteAd(id: string): Promise<void> {
+    await api.delete(API_ENDPOINTS.ADMIN_AD_BY_ID(id));
+  },
+
+  async getAdAnalytics(days?: number): Promise<ApiResponse<AdAnalytics>> {
+    return await api.get<AdAnalytics>(API_ENDPOINTS.ADMIN_AD_ANALYTICS, {
+      params: days ? { days } : undefined,
+    });
   },
 };

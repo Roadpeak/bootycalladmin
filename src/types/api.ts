@@ -347,6 +347,118 @@ export interface ToggleReviewVisibilityRequest {
   visible: boolean;
 }
 
+// ==================== Platform Settings ====================
+
+export type EscortTier = 'REGULAR' | 'PRIME' | 'VIP' | 'VVIP';
+
+/** Payment families that each carry their own revenue split. */
+export type RevenueScope =
+  | 'ESCORT_SUBSCRIPTION'
+  | 'DATING_SUBSCRIPTION'
+  | 'UNLOCK_ESCORT';
+
+export interface PlatformSetting {
+  id: string;
+  key: string;
+  value: string;
+  valueType: 'NUMBER' | 'BOOLEAN' | 'STRING';
+  category: string;
+  description: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Percentages of a payment. Validated server-side to total exactly 100 —
+ * anything else would leave money unallocated or over-allocated.
+ */
+export interface RevenueSplit {
+  id: string;
+  scope: RevenueScope;
+  platformPercent: string | number;
+  serviceFeePercent: string | number;
+  level1Percent: string | number;
+  level2Percent: string | number;
+  escortPercent: string | number;
+  updatedAt: string;
+}
+
+export interface UpdateRevenueSplitRequest {
+  platformPercent: number;
+  serviceFeePercent: number;
+  level1Percent: number;
+  level2Percent: number;
+  escortPercent: number;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  tier: EscortTier;
+  durationDays: number;
+  price: string | number;
+  label: string | null;
+  isActive: boolean;
+}
+
+export interface UpdatePlanRequest {
+  price?: number;
+  label?: string;
+  isActive?: boolean;
+}
+
+// ==================== Advertisements ====================
+
+export type AdActionType = 'LINK' | 'WHATSAPP' | 'CALL';
+
+export interface Advertisement {
+  id: string;
+  name: string;
+  detail: string | null;
+  imageUrl: string;
+  actionType: AdActionType;
+  /** URL for LINK; a normalised 254… phone number for WHATSAPP and CALL. */
+  actionValue: string;
+  actionLabel: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  impressions: number;
+  clickCount: number;
+  createdAt: string;
+}
+
+export interface AdInputRequest {
+  name: string;
+  detail?: string | null;
+  imageUrl: string;
+  actionType: AdActionType;
+  actionValue: string;
+  actionLabel?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export interface AdAnalytics {
+  ads: {
+    id: string;
+    name: string;
+    actionType: AdActionType;
+    isActive: boolean;
+    impressions: number;
+    clickCount: number;
+    clickThroughRate: number;
+    createdAt: string;
+  }[];
+  totals: {
+    impressions: number;
+    clicks: number;
+    clickThroughRate: number;
+  };
+  series: { adId: string; day: string; clicks: number }[];
+}
+
 // Error Types
 export interface ApiError {
   status: 'error';
