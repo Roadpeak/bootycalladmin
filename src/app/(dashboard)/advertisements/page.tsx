@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   AlertCircle, Check, Loader2, Plus, Trash2, Pencil, ExternalLink,
-  MessageCircle, Phone, MousePointerClick, Eye, X,
+  MessageCircle, Phone, MousePointerClick, Eye, X, Upload,
 } from 'lucide-react';
 import { adminService, handleApiError } from '@/lib/api';
 import type {
@@ -432,27 +432,10 @@ function AdFormModal({
             />
           </Field>
 
-          <Field label="Image URL" htmlFor="ad-image">
-            <input
-              id="ad-image"
-              required
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              placeholder="https://…"
-              className={inputClass}
-            />
-            {form.imageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={form.imageUrl}
-                alt=""
-                className="mt-2 h-24 w-full rounded object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            )}
-          </Field>
+          <ImageField
+            value={form.imageUrl}
+            onChange={(url) => setForm({ ...form, imageUrl: url })}
+          />
 
           <Field label="Button action" htmlFor="ad-action">
             <select
@@ -544,6 +527,104 @@ function AdFormModal({
     </div>
   );
 }
+
+/**
+ * Image picker for an ad.
+ *
+ * Uploads the chosen file and stores the hosted URL, so an admin never has to
+ * find a URL for an image themselves. Type and size are checked here to fail
+ * fast with a clear message rather than after a slow upload.
+ */
+function ImageField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setError('Choose a JPG, PNG, WebP or GIF image.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB. The limit is 5MB.`);
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError(null);
+      const { url } = await adminService.uploadImage(file);
+      onChange(url);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-gray-700">Image</label>
+
+      {value ? (
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="" className="h-32 w-full rounded-lg object-cover" />
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+            aria-label="Remove image"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 transition-colors hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-60"
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="h-6 w-6 animate-spin" />
+              Uploading…
+            </>
+          ) : (
+            <>
+              <Upload className="h-6 w-6" />
+              Choose an image
+              <span className="text-xs text-gray-400">JPG, PNG, WebP or GIF, up to 5MB</span>
+            </>
+          )}
+        </button>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+        onChange={(e) => handleFile(e.target.files?.[0])}
+        className="hidden"
+      />
+
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+/** Matches the server's MAX_FILE_SIZE default. */
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500';

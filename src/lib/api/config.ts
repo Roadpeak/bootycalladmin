@@ -68,6 +68,14 @@ export const API_ENDPOINTS = {
   ADMIN_ADS: '/admin/ads',
   ADMIN_AD_BY_ID: (id: string) => `/admin/ads/${id}`,
   ADMIN_AD_ANALYTICS: '/admin/ads/analytics',
+
+  // Uploads
+  ADMIN_UPLOAD_IMAGE: '/admin/uploads/image',
+
+  // Finance
+  ADMIN_BALANCES: '/admin/balances',
+  ADMIN_SERVICE_FEE: '/admin/service-fee',
+  ADMIN_SETTLE_SERVICE_FEE: '/admin/service-fee/settle',
 } as const;
 
 // Storage keys for tokens
