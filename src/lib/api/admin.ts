@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, uploadFile } from './client';
 import { API_ENDPOINTS } from './config';
 import type {
   DashboardStats,
@@ -29,6 +29,9 @@ import type {
   Advertisement,
   AdInputRequest,
   AdAnalytics,
+  UserBalance,
+  ServiceFeeStatus,
+  SettlementResult,
 } from '@/types/api';
 
 /**
@@ -235,5 +238,35 @@ export const adminService = {
     return await api.get<AdAnalytics>(API_ENDPOINTS.ADMIN_AD_ANALYTICS, {
       params: days ? { days } : undefined,
     });
+  },
+  // ==================== Uploads ====================
+  /**
+   * Uploads an image and returns its hosted URL. Used by the ad form so an
+   * admin picks a file rather than having to find a URL for it themselves.
+   */
+  async uploadImage(file: File, folder = 'ads'): Promise<{ url: string }> {
+    const response = await uploadFile<{ url: string }>(
+      API_ENDPOINTS.ADMIN_UPLOAD_IMAGE,
+      file,
+      { folder }
+    );
+    return response.data!;
+  },
+
+  // ==================== Finance ====================
+  async getBalances(params?: { page?: number; limit?: number; role?: string }) {
+    return await api.get<UserBalance[]>(API_ENDPOINTS.ADMIN_BALANCES, { params });
+  },
+
+  async getServiceFeeStatus(params?: { page?: number; limit?: number }) {
+    return await api.get<ServiceFeeStatus>(API_ENDPOINTS.ADMIN_SERVICE_FEE, { params });
+  },
+
+  async settleServiceFee(force = false) {
+    const response = await api.post<SettlementResult>(
+      API_ENDPOINTS.ADMIN_SETTLE_SERVICE_FEE,
+      { force }
+    );
+    return response.data!;
   },
 };

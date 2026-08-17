@@ -181,3 +181,49 @@ export function handleApiError(error: unknown): string {
 export function isAuthError(error: unknown): boolean {
   return error instanceof APIError && (error.statusCode === 401 || error.statusCode === 403);
 }
+
+/**
+ * Uploads a file as multipart/form-data.
+ *
+ * Kept separate from `apiClient` because that helper always sets
+ * `Content-Type: application/json`. For a FormData body the browser must set
+ * the header itself so it can include the multipart boundary — setting it
+ * manually produces a request the server cannot parse.
+ */
+export async function uploadFile<T>(
+  endpoint: string,
+  file: File,
+  fields: Record<string, string> = {}
+): Promise<ApiResponse<T>> {
+  const formData = new FormData();
+  formData.append('image', file);
+  for (const [key, value] of Object.entries(fields)) {
+    formData.append(key, value);
+  }
+
+  const token = getAccessToken();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+
+  try {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+      signal: controller.signal,
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new APIError(
+        response.status,
+        (data as { message?: string })?.message || 'Upload failed'
+      );
+    }
+
+    return data as ApiResponse<T>;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

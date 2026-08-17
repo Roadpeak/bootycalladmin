@@ -459,6 +459,53 @@ export interface AdAnalytics {
   series: { adId: string; day: string; clicks: number }[];
 }
 
+// ==================== Finance ====================
+
+export interface UserBalance {
+  id: string;
+  email: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
+  displayName: string | null;
+  role: UserRole;
+  walletBalance: string | number;
+  createdAt: string;
+}
+
+export interface ServiceFeeSettlement {
+  id: string;
+  amount: string | number;
+  status: 'PENDING' | 'PROCESSING' | 'SETTLED' | 'FAILED';
+  periodStart: string;
+  periodEnd: string;
+  shareCount: number;
+  mpesaTxnId: string | null;
+  failureReason: string | null;
+  settledAt: string | null;
+  createdAt: string;
+}
+
+export interface ServiceFeeStatus {
+  outstanding: {
+    amount: number;
+    shareCount: number;
+    periodStart: string;
+    periodEnd: string;
+  };
+  /** False when the M-Pesa payout credentials are not set. */
+  payoutsConfigured: boolean;
+  settlements: ServiceFeeSettlement[];
+}
+
+export interface SettlementResult {
+  settled: boolean;
+  amount: number;
+  reason?: string;
+  settlementId?: string;
+  conversationId?: string;
+}
+
 // Error Types
 export interface ApiError {
   status: 'error';
