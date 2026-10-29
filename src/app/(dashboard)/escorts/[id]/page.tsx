@@ -7,7 +7,7 @@ import { ArrowLeft, MapPin, Phone, Mail, Eye, Star, Unlock } from 'lucide-react'
 import { adminService, handleApiError } from '@/lib/api';
 import { getEscortDetail, type EscortDetail } from '@/lib/api/insights';
 import {
-  StatusBadge, TierBadge, Avatar, ErrorBanner, money, date, dateTime, personName, th, td, TIER_LABEL,
+  StatusBadge, TierBadge, Avatar, ErrorBanner, imageSrc, money, date, dateTime, personName, th, td, TIER_LABEL,
 } from '@/components/admin/ui';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -111,12 +111,12 @@ export default function EscortDetailPage() {
             {escort.photos?.length ? (
               <div className="space-y-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={escort.photos[photo]} alt={`${name} photo ${photo + 1}`} className="max-h-[28rem] w-full rounded-lg bg-gray-50 object-contain" />
+                <img src={imageSrc(escort.photos[photo])} alt={`${name} photo ${photo + 1}`} className="max-h-[28rem] w-full rounded-lg bg-gray-50 object-contain" />
                 <div className="flex flex-wrap gap-2">
                   {escort.photos.map((src, i) => (
-                    <button key={src + i} type="button" onClick={() => setPhoto(i)} className={`h-16 w-16 overflow-hidden rounded-lg ring-2 ${i === photo ? 'ring-amber-500' : 'ring-transparent'}`}>
+                    <button key={i} type="button" onClick={() => setPhoto(i)} className={`h-16 w-16 overflow-hidden rounded-lg ring-2 ${i === photo ? 'ring-amber-500' : 'ring-transparent'}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt="" className="h-full w-full object-cover" />
+                      <img src={imageSrc(src)} alt="" className="h-full w-full object-cover" />
                     </button>
                   ))}
                 </div>
