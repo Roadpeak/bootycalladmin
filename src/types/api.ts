@@ -229,6 +229,8 @@ export interface EscortListParams {
 
 export interface VerifyEscortRequest {
   verified: boolean;
+  /** Listing moderation decision, sent alongside verification */
+  moderationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   notes?: string;
 }
 
@@ -283,6 +285,9 @@ export interface WithdrawalListParams {
 
 export interface ProcessWithdrawalRequest {
   status: 'COMPLETED' | 'REJECTED';
+  /** M-Pesa code of a payout made by hand; the API field is mpesaTxnId */
+  mpesaTxnId?: string;
+  /** @deprecated ignored by the API, use mpesaTxnId */
   mpesaTransactionId?: string;
   notes?: string;
 }

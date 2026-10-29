@@ -5,6 +5,9 @@ import {
   AlertCircle, Check, Loader2, Wallet, Send, Building2, RefreshCw,
 } from 'lucide-react';
 import { adminService, handleApiError } from '@/lib/api';
+import { getWithdrawals, type AdminWithdrawal, type WithdrawalSummary } from '@/lib/api/insights';
+import type { Pagination } from '@/types/api';
+import { StatCard, Tabs, SearchInput, Pager, TableShell, StatusBadge, dateTime, personName, th, td, useDebounced } from '@/components/admin/ui';
 import type {
   Withdrawal,
   UserBalance,
@@ -103,160 +106,195 @@ function RequestsTab({
   onError: (message: string) => void;
   onDone: (message: string) => void;
 }) {
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [status, setStatus] = useState<'PENDING' | 'COMPLETED' | 'REJECTED' | 'all'>('PENDING');
+  const [role, setRole] = useState('');
+  const [search, setSearch] = useState('');
+  const debounced = useDebounced(search);
+  const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<AdminWithdrawal[]>([]);
+  const [summary, setSummary] = useState<WithdrawalSummary | null>(null);
+  const [info, setInfo] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('PENDING');
   const [processing, setProcessing] = useState<string | null>(null);
+  const [manualFor, setManualFor] = useState<string | null>(null);
+  const [manualCode, setManualCode] = useState('');
+  const [confirmReject, setConfirmReject] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => { setPage(1); }, [status, role, debounced]);
 
   useEffect(() => {
-    fetchWithdrawals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+    let cancelled = false;
+    setLoading(true);
+    getWithdrawals({
+      page,
+      status: status === 'all' ? undefined : status,
+      role: role || undefined,
+      search: debounced || undefined,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setRows(res.data);
+        setSummary(res.summary);
+        setInfo(res.pagination);
+      })
+      .catch((err) => !cancelled && onError(handleApiError(err)))
+      .finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
+  }, [page, status, role, debounced, reload, onError]);
 
-  async function fetchWithdrawals() {
-    try {
-      setLoading(true);
-      const res = await adminService.getWithdrawals({
-        page: 1,
-        limit: 50,
-        ...(status ? { status: status as 'PENDING' | 'COMPLETED' | 'REJECTED' } : {}),
-      });
-      if (res.data) setWithdrawals(res.data);
-    } catch (err) {
-      onError(handleApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function process(id: string, decision: 'COMPLETED' | 'REJECTED') {
+  async function process(id: string, decision: 'COMPLETED' | 'REJECTED', mpesaTxnId?: string) {
     try {
       setProcessing(id);
-      await adminService.processWithdrawal(id, { status: decision });
+      await adminService.processWithdrawal(id, { status: decision, ...(mpesaTxnId ? { mpesaTxnId } : {}) });
       onDone(
-        decision === 'COMPLETED'
-          ? 'Payout sent. It stays pending until M-Pesa confirms.'
-          : 'Request rejected and the amount returned to the wallet.'
+        decision === 'REJECTED'
+          ? 'Request rejected and the amount returned to the wallet.'
+          : mpesaTxnId
+            ? 'Recorded as paid manually.'
+            : 'Payout sent to M-Pesa. It stays pending until Safaricom confirms.',
       );
-      fetchWithdrawals();
+      setManualFor(null);
+      setManualCode('');
+      setConfirmReject(null);
+      setReload((n) => n + 1);
     } catch (err) {
       onError(handleApiError(err));
+      // A failed payout records its reason on the row, so refresh to show it
+      setReload((n) => n + 1);
     } finally {
       setProcessing(null);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
+  const ROLE_LABEL: Record<string, string> = { DATING_USER: 'Dating', ESCORT: 'Escort', HOOKUP_USER: 'Hookup' };
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        {['PENDING', 'COMPLETED', 'REJECTED', ''].map((value) => (
-          <button
-            key={value || 'all'}
-            onClick={() => setStatus(value)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              status === value
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            {value || 'All'}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Pending" value={summary?.pending ?? '—'} hint={`${money(summary?.pendingAmount ?? 0)} waiting`} />
+        <StatCard label="Paid out" value={money(summary?.completedAmount ?? 0)} hint={`${summary?.completed ?? 0} withdrawals`} />
+        <StatCard label="Rejected" value={summary?.rejected ?? '—'} hint="Refunded to wallets" />
+        <StatCard label="Payout method" value="M-Pesa B2C" hint="Automatic when enabled in settings" />
       </div>
 
-      {withdrawals.length === 0 ? (
-        <p className="rounded-lg bg-white p-10 text-center text-sm text-gray-600 shadow">
-          No withdrawal requests here.
-        </p>
-      ) : (
-        <div className="overflow-hidden rounded-lg bg-white shadow">
-          <table className="min-w-full divide-y divide-gray-200">
+      <div className="rounded-xl border border-gray-200 bg-white">
+        <div className="flex flex-col gap-3 border-b border-gray-200 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: 'PENDING', label: 'Pending' },
+              { value: 'COMPLETED', label: 'Completed' },
+              { value: 'REJECTED', label: 'Rejected' },
+              { value: 'all', label: 'All' },
+            ]}
+          />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              aria-label="Account type"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">All account types</option>
+              <option value="ESCORT">Escorts</option>
+              <option value="DATING_USER">Dating users</option>
+              <option value="HOOKUP_USER">Hookup users</option>
+            </select>
+            <SearchInput value={search} onChange={setSearch} placeholder="Name, email or phone" />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                {['User', 'Phone', 'Amount', 'Requested', 'Status', ''].map((h) => (
-                  <th
-                    key={h}
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                  >
-                    {h}
-                  </th>
-                ))}
+                <th className={th}>Account</th>
+                <th className={th}>Amount</th>
+                <th className={th}>Pay to</th>
+                <th className={th}>Status</th>
+                <th className={th}>Payout</th>
+                <th className={th}>Requested</th>
+                <th className={th} />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {withdrawals.map((w) => {
-                const meta = (w as unknown as { metadata?: { phone?: string } }).metadata;
-                return (
-                  <tr key={w.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">
-                        {w.user?.displayName ||
-                          `${w.user?.firstName ?? ''} ${w.user?.lastName ?? ''}`.trim() ||
-                          'Unknown'}
+            <TableShell loading={loading} empty={rows.length === 0} colSpan={7}>
+              {rows.map((w) => (
+                <tr key={w.id} className="hover:bg-gray-50">
+                  <td className={td}>
+                    <p className="font-medium text-gray-900">{personName(w.user)}</p>
+                    <p className="text-xs text-gray-500">{ROLE_LABEL[w.user.role] ?? w.user.role} · {w.user.email}</p>
+                  </td>
+                  <td className={`${td} font-semibold text-gray-900`}>{money(w.amount)}</td>
+                  <td className={`${td} font-mono text-xs`}>{w.payout.phone ?? w.user.phone}</td>
+                  <td className={td}><StatusBadge status={w.status} /></td>
+                  <td className={`${td} max-w-xs`}>
+                    {w.payout.method === 'MANUAL' && <p>Paid manually{w.payout.mpesaTxnId ? ` · ${w.payout.mpesaTxnId}` : ''}</p>}
+                    {w.payout.method === 'B2C' && (
+                      <p>M-Pesa B2C{w.payout.mpesaTxnId ? ` · ${w.payout.mpesaTxnId}` : w.status === 'PENDING' ? ' · awaiting Safaricom' : ''}</p>
+                    )}
+                    {!w.payout.method && w.status === 'PENDING' && <p className="text-gray-500">Not sent yet</p>}
+                    {w.payout.failureReason && (
+                      <p className="mt-1 text-xs text-red-700">
+                        {w.payout.failureReason}
+                        {w.payout.lastAttemptAt && <span className="text-red-500"> · {dateTime(w.payout.lastAttemptAt)}</span>}
                       </p>
-                      <p className="text-sm text-gray-500">{w.user?.email}</p>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {meta?.phone || w.phone || '—'}
-                    </td>
-                    {/* Withdrawals are stored negative; show the magnitude. */}
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {money(w.amount)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(w.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          STATUS_STYLES[w.status] ?? 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {w.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {w.status === 'PENDING' ? (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => process(w.id, 'COMPLETED')}
-                            disabled={processing === w.id}
-                            className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:bg-gray-300"
-                          >
-                            {processing === w.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Send className="h-3 w-3" />
-                            )}
-                            Pay
-                          </button>
-                          <button
-                            onClick={() => process(w.id, 'REJECTED')}
-                            disabled={processing === w.id}
-                            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:bg-gray-300"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+                    )}
+                  </td>
+                  <td className={`${td} whitespace-nowrap`}>{dateTime(w.createdAt)}</td>
+                  <td className={`${td} whitespace-nowrap`}>
+                    {w.status === 'PENDING' && (
+                      <div className="flex flex-col items-end gap-2">
+                        {manualFor === w.id ? (
+                          <div className="flex gap-2">
+                            <input
+                              value={manualCode}
+                              onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                              placeholder="M-Pesa code"
+                              className="w-32 rounded-lg border border-gray-300 px-2 py-1 text-xs"
+                            />
+                            <button
+                              type="button"
+                              disabled={!manualCode.trim() || processing === w.id}
+                              onClick={() => process(w.id, 'COMPLETED', manualCode.trim())}
+                              className="rounded-lg bg-gray-900 px-3 py-1 text-xs font-medium text-white disabled:opacity-40"
+                            >
+                              Save
+                            </button>
+                            <button type="button" onClick={() => setManualFor(null)} className="text-xs text-gray-500">Cancel</button>
+                          </div>
+                        ) : confirmReject === w.id ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-600">Refund {money(w.amount)}?</span>
+                            <button type="button" disabled={processing === w.id} onClick={() => process(w.id, 'REJECTED')} className="rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-40">Reject</button>
+                            <button type="button" onClick={() => setConfirmReject(null)} className="text-xs text-gray-500">Keep</button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={processing === w.id}
+                              onClick={() => process(w.id, 'COMPLETED')}
+                              className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-40"
+                            >
+                              {processing === w.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                              {w.payout.failureReason ? 'Retry M-Pesa' : 'Send via M-Pesa'}
+                            </button>
+                            <button type="button" onClick={() => { setManualFor(w.id); setManualCode(''); }} className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">Paid manually</button>
+                            <button type="button" onClick={() => setConfirmReject(w.id)} className="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50">Reject</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </TableShell>
           </table>
         </div>
-      )}
+        <Pager info={info} onPage={setPage} />
+      </div>
     </div>
   );
 }
