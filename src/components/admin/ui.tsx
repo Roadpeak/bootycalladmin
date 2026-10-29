@@ -160,10 +160,41 @@ export function TableShell({ loading, empty, children, colSpan }: { loading: boo
 export const th = 'px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500';
 export const td = 'px-4 py-3 text-sm text-gray-700 align-top';
 
+/**
+ * Profile photos are stored by the API as bare base64 (no data: prefix), so
+ * passing them straight to <img src> makes the browser request them as a
+ * relative URL. Turn them into a data URL; leave real URLs alone.
+ */
+export function imageSrc(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const v = value.trim();
+  if (/^(https?:|data:|blob:)/i.test(v)) return v;
+  if (v.startsWith('/')) {
+    const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+    // "/9j/..." is a bare base64 JPEG, not a path.
+    if (!/^\/9j\//.test(v)) return api ? `${api.replace(/\/api\/v1\/?$/, '')}${v}` : v;
+  }
+  const mime = v.startsWith('iVBOR')
+    ? 'image/png'
+    : v.startsWith('R0lGOD')
+      ? 'image/gif'
+      : v.startsWith('UklGR')
+        ? 'image/webp'
+        : 'image/jpeg';
+  return `data:${mime};base64,${v}`;
+}
+
 export function Avatar({ src, name }: { src?: string | null; name: string }) {
-  return src ? (
+  const [failed, setFailed] = useState(false);
+  const url = imageSrc(src);
+  return url && !failed ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={name} className="h-10 w-10 flex-shrink-0 rounded-full object-cover ring-1 ring-gray-200" />
+    <img
+      src={url}
+      alt={name}
+      onError={() => setFailed(true)}
+      className="h-10 w-10 flex-shrink-0 rounded-full object-cover ring-1 ring-gray-200"
+    />
   ) : (
     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500">
       {(name || '?').charAt(0).toUpperCase()}
