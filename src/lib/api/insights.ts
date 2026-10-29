@@ -178,3 +178,22 @@ export async function getEscortDetail(id: string): Promise<EscortDetail> {
   const res = (await api.get<EscortDetail>(`/admin/escorts/${id}`)) as any;
   return res.data;
 }
+
+// ---------- earnings ----------
+export type EarningsRange = 'today' | '7d' | '30d' | '90d' | 'all';
+export interface EarningsShares { platform: number; serviceFee: number; referralL1: number; referralL2: number; escort: number }
+export interface EarningsReport {
+  range: EarningsRange;
+  from: string | null;
+  summary: { grossRevenue: number; netPlatformEarnings: number; serviceFeeOwed: number; totalPayouts: number; unledgeredRevenue: number; paymentCount: number };
+  bySource: { type: string; revenue: number; count: number; shares: EarningsShares; unledgered: number }[];
+  escortPlansByTier: { tier: Tier | 'UNKNOWN'; revenue: number; count: number }[];
+  earnings: { platform: number; serviceFee: number; referrals: number; escorts: number };
+  payouts: { withdrawalsPaid: number; withdrawalsPaidCount: number; withdrawalsPending: number; withdrawalsPendingCount: number; referralCredits: number; escortCredits: number };
+  splits: { scope: string; platformPercent: number; serviceFeePercent: number; level1Percent: number; level2Percent: number; escortPercent: number }[];
+  months: { month: string; revenue: number; platform: number }[];
+}
+export async function getEarnings(range: EarningsRange): Promise<EarningsReport> {
+  const res = (await api.get<EarningsReport>('/admin/earnings', { params: { range } })) as any;
+  return res.data;
+}
