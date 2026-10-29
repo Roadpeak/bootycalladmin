@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authService, getStoredAdmin } from '@/lib/api';
 import AuthGuard from '@/components/AuthGuard';
-import { LogOut, Menu, X, Bell } from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
+import NotificationBell from '@/components/admin/NotificationBell';
 
 export default function DashboardLayout({
   children,
@@ -197,6 +198,18 @@ export default function DashboardLayout({
             </li>
             <li>
               <Link
+                href="/inbox"
+                onClick={closeSidebar}
+                className="flex items-center px-4 py-2 text-amber-100 hover:bg-gradient-to-r hover:from-red-800 hover:to-amber-800 rounded-lg transition-all duration-200 hover:shadow-md"
+              >
+                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                Notifications
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="/notifications"
                 onClick={closeSidebar}
                 className="flex items-center px-4 py-2 text-amber-100 hover:bg-gradient-to-r hover:from-red-800 hover:to-amber-800 rounded-lg transition-all duration-200 hover:shadow-md"
@@ -204,7 +217,7 @@ export default function DashboardLayout({
                 <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                Notifications
+                Send Notifications
               </Link>
             </li>
             <li>
@@ -254,10 +267,7 @@ export default function DashboardLayout({
 
           <div className="flex items-center space-x-2">
             {/* Notifications */}
-            <button className="p-2 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-            </button>
+            <NotificationBell />
 
             {/* Profile */}
             <div className="flex items-center space-x-2 lg:space-x-4 ml-2">

@@ -110,7 +110,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Notifications" description="Messages that appear in members' notification bell on the website. People online see them immediately." />
+      <PageHeader title="Send Notifications" description="Messages that appear in members' notification bell on the website. People online see them immediately." />
       <ErrorBanner message={error} />
       {notice && <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</div>}
 
