@@ -13,6 +13,40 @@ export class APIError extends Error {
   }
 }
 
+/**
+ * Ends the session once the API has rejected the stored token.
+ *
+ * An expired or revoked token cannot recover, so instead of surfacing
+ * "Invalid token" on every screen, clear it and send the admin to sign in
+ * again. Guarded so a page firing several requests at once redirects once.
+ */
+let sessionEndHandled = false;
+export function endExpiredSession(): void {
+  if (typeof window === 'undefined' || sessionEndHandled) return;
+  sessionEndHandled = true;
+  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
+  window.location.replace('/login?expired=1');
+}
+
+/**
+ * Whether a JWT's `exp` claim has passed. Reads the payload only; the API
+ * still verifies the signature. Unreadable tokens count as not expired and
+ * are left for the API to reject.
+ */
+export function isTokenExpired(token: string): boolean {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(payload)) as { exp?: number };
+    return typeof exp === 'number' && exp * 1000 <= Date.now();
+  } catch {
+    return false;
+  }
+}
+
+const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please sign in again.';
+
 // Type for request options
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
@@ -90,6 +124,13 @@ export async function apiClient<T>(
     });
 
     clearTimeout(timeoutId);
+
+    // A rejected token on an authenticated call means the session is over.
+    // Login itself sends no token, so a wrong password still shows its error.
+    if (response.status === 401 && requestHeaders['Authorization']) {
+      endExpiredSession();
+      throw new APIError(401, SESSION_EXPIRED_MESSAGE);
+    }
 
     // Parse response
     const data = await response.json();
@@ -212,6 +253,11 @@ export async function uploadFile<T>(
       body: formData,
       signal: controller.signal,
     });
+
+    if (response.status === 401 && token) {
+      endExpiredSession();
+      throw new APIError(401, SESSION_EXPIRED_MESSAGE);
+    }
 
     const data = await response.json().catch(() => ({}));
 

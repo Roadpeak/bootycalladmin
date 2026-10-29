@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { isAuthenticated } from '@/lib/api';
+import { isAuthenticated, getStoredAccessToken, isTokenExpired, endExpiredSession } from '@/lib/api';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -15,9 +15,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       const publicPaths = ['/login', '/'];
       const isPublicPath = publicPaths.includes(pathname);
 
+      const token = getStoredAccessToken();
+
       if (!isPublicPath && !isAuthenticated()) {
         // Redirect to login if not authenticated
         router.push('/login');
+      } else if (!isPublicPath && token && isTokenExpired(token)) {
+        // Signed in earlier but the token has since expired
+        endExpiredSession();
       } else {
         setIsChecking(false);
       }
