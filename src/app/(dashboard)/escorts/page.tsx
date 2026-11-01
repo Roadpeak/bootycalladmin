@@ -155,7 +155,12 @@ export default function EscortsPage() {
                     </td>
                     <td className={td}>
                       <TierBadge tier={e.currentPlan?.tier} />
-                      {e.currentPlan && <p className="mt-1 text-xs text-gray-500">until {date(e.currentPlan.expiresAt)}</p>}
+                      {e.currentPlan && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          {e.currentPlan.isFreeTrial && <span className="mr-1 font-medium text-amber-700">Free trial ·</span>}
+                          until {date(e.currentPlan.expiresAt)}
+                        </p>
+                      )}
                       {e.queuedPlans.length > 0 && (
                         <p className="text-xs text-gray-500">then {e.queuedPlans.map((q) => TIER_LABEL[q.tier]).join(', ')} · paid to {date(e.paidUntil)}</p>
                       )}
