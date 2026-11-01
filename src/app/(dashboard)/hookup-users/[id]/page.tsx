@@ -14,13 +14,12 @@ import {
   DollarSign,
   User as UserIcon,
   Edit,
-  Ban,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import AccountStatusCard from '@/components/admin/AccountStatusCard';
+import { StatusBadge } from '@/components/admin/ui';
 
 export default function HookupUserDetailPage() {
   const router = useRouter();
@@ -30,7 +29,6 @@ export default function HookupUserDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -49,22 +47,6 @@ export default function HookupUserDetailPage() {
       console.error('Error fetching user:', err);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleToggleStatus() {
-    if (!user) return;
-
-    try {
-      setActionLoading(true);
-      await adminService.updateUserStatus(userId, {
-        isActive: !user.isActive
-      });
-      await fetchUser(); // Refresh user data
-    } catch (err) {
-      alert(handleApiError(err));
-    } finally {
-      setActionLoading(false);
     }
   }
 
@@ -142,30 +124,17 @@ export default function HookupUserDetailPage() {
           <h1 className="text-2xl font-semibold">Hookup User Details</h1>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleToggleStatus}
-            disabled={actionLoading}
-            className={`flex items-center px-4 py-2 rounded-lg ${
-              user.isActive
-                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            } disabled:opacity-50`}
-          >
-            {user.isActive ? (
-              <>
-                <Ban className="h-4 w-4 mr-2" />
-                Suspend User
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Activate User
-              </>
-            )}
-          </button>
-        </div>
       </div>
+
+      <AccountStatusCard
+        userId={user.id}
+        status={user.accountStatus}
+        reason={user.statusReason}
+        changedAt={user.statusChangedAt}
+        walletBalance={user.walletBalance}
+        onChanged={fetchUser}
+        onDeleted={() => router.back()}
+      />
 
       {/* User Profile Card */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -185,23 +154,10 @@ export default function HookupUserDetailPage() {
                 <h2 className="text-2xl font-bold text-gray-900">
                   {user.displayName || `${user.firstName} ${user.lastName}`}
                 </h2>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  user.isActive
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {user.isActive ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Active
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-4 w-4 mr-1" />
-                      Suspended
-                    </>
-                  )}
-                </span>
+                <StatusBadge
+                  status={user.accountStatus ?? 'ACTIVE'}
+                  label={{ ACTIVE: 'Active', DEACTIVATED: 'Deactivated', SUSPENDED: 'Suspended', DELETED: 'Deleted' }[user.accountStatus ?? 'ACTIVE']}
+                />
               </div>
               <p className="text-gray-500 mt-1">Hookup User</p>
             </div>

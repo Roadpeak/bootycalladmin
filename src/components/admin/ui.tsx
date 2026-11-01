@@ -41,6 +41,8 @@ const STATUS_CLASS: Record<string, string> = {
   FAILED: 'bg-red-100 text-red-800',
   REJECTED: 'bg-red-100 text-red-800',
   SUSPENDED: 'bg-red-100 text-red-800',
+  DEACTIVATED: 'bg-gray-100 text-gray-700',
+  DELETED: 'bg-gray-200 text-gray-600',
   EXPIRED: 'bg-gray-100 text-gray-700',
   REFUNDED: 'bg-gray-100 text-gray-700',
 };

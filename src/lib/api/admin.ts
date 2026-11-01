@@ -83,6 +83,23 @@ export const adminService = {
     return response.data!;
   },
 
+  /** Turns an account off; only an admin can turn it back on. */
+  async suspendUser(id: string, reason?: string): Promise<User> {
+    const response = await api.post<User>(API_ENDPOINTS.ADMIN_SUSPEND_USER(id), { reason });
+    return response.data!;
+  },
+
+  /** Restores a suspended or deactivated account. */
+  async reactivateUser(id: string): Promise<User> {
+    const response = await api.post<User>(API_ENDPOINTS.ADMIN_REACTIVATE_USER(id));
+    return response.data!;
+  },
+
+  /** Erases the member's personal data; payment records are kept. */
+  async deleteUser(id: string, data: { reason?: string; forfeitBalance?: boolean }): Promise<void> {
+    await api.delete(API_ENDPOINTS.ADMIN_USER_BY_ID(id), { body: JSON.stringify(data) });
+  },
+
   // ==================== Escorts Management ====================
   /**
    * List escorts for verification with pagination and filters

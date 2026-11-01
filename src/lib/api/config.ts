@@ -34,6 +34,8 @@ export const API_ENDPOINTS = {
   ADMIN_USERS: '/admin/users',
   ADMIN_USER_BY_ID: (id: string) => `/admin/users/${id}`,
   ADMIN_UPDATE_USER_STATUS: (id: string) => `/admin/users/${id}/status`,
+  ADMIN_SUSPEND_USER: (id: string) => `/admin/users/${id}/suspend`,
+  ADMIN_REACTIVATE_USER: (id: string) => `/admin/users/${id}/reactivate`,
 
   // Admin Escorts Management
   ADMIN_ESCORTS: '/admin/escorts',

@@ -100,7 +100,7 @@ export interface AdminEscort {
   queuedPlans: PlanSpan[];
   paidUntil: string | null;
   totalViews?: number;
-  user: { id: string; email: string; phone: string; firstName: string; lastName: string; displayName: string | null; gender: string | null; isActive: boolean; lastLogin: string | null };
+  user: { id: string; email: string; phone: string; firstName: string; lastName: string; displayName: string | null; gender: string | null; isActive: boolean; lastLogin: string | null; accountStatus?: 'ACTIVE' | 'DEACTIVATED' | 'SUSPENDED' | 'DELETED'; statusReason?: string | null; statusChangedAt?: string | null };
 }
 export interface EscortSummary {
   total: number; byTier: Record<Tier, number>; withoutPlan: number; pendingModeration: number; verified: number;
@@ -112,6 +112,7 @@ export const getEscorts = (params: { page: number; tier?: string; verified?: str
 export interface AdminDatingUser {
   id: string; email: string; phone: string; firstName: string; lastName: string; displayName: string | null;
   role: string; isActive: boolean; createdAt: string; lastLogin: string | null; walletBalance: string;
+  accountStatus?: 'ACTIVE' | 'DEACTIVATED' | 'SUSPENDED' | 'DELETED'; statusReason?: string | null;
   datingSubscriptionExpiresAt: string | null; subscriptionActive: boolean;
   photo: string | null; photos: string[]; city: string | null; area: string | null; age: number | null;
   gender: string | null; interests: string[];

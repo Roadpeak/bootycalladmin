@@ -173,7 +173,9 @@ export default function EscortsPage() {
                       <div className="flex flex-col items-start gap-1">
                         <StatusBadge status={e.moderationStatus} label={e.moderationStatus === 'PENDING' ? 'Awaiting review' : undefined} />
                         {e.verified ? <StatusBadge status="COMPLETED" label="Verified" /> : <StatusBadge status="EXPIRED" label="Not verified" />}
-                        {!e.user.isActive && <StatusBadge status="SUSPENDED" label="Account off" />}
+                        {e.user.accountStatus && e.user.accountStatus !== 'ACTIVE' && (
+                          <StatusBadge status={e.user.accountStatus} label={e.user.accountStatus === 'DEACTIVATED' ? 'Deactivated' : 'Suspended'} />
+                        )}
                       </div>
                     </td>
                     <td className={`${td} whitespace-nowrap`}>

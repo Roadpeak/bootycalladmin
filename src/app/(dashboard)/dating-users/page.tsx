@@ -48,7 +48,8 @@ export default function DatingUsersPage() {
   async function toggleActive(u: AdminDatingUser) {
     try {
       setBusy(u.id);
-      await adminService.updateUserStatus(u.id, { isActive: !u.isActive });
+      if ((u.accountStatus ?? 'ACTIVE') === 'ACTIVE') await adminService.suspendUser(u.id);
+      else await adminService.reactivateUser(u.id);
       setReload((n) => n + 1);
     } catch (err) {
       setError(handleApiError(err));
@@ -63,7 +64,7 @@ export default function DatingUsersPage() {
       <ErrorBanner message={error} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Members" value={summary?.total ?? '—'} hint={`${summary?.inactive ?? 0} deactivated`} icon={<Users className="h-5 w-5" />} />
+        <StatCard label="Members" value={summary?.total ?? '—'} hint={`${summary?.inactive ?? 0} suspended or deactivated`} icon={<Users className="h-5 w-5" />} />
         <StatCard label="Subscribed" value={summary?.activeSubscribers ?? '—'} hint="Active dating subscription" icon={<Heart className="h-5 w-5" />} />
         <StatCard label="Lapsed" value={summary?.expiredSubscribers ?? '—'} hint="Subscription expired" icon={<UserX className="h-5 w-5" />} />
         <StatCard label="New this week" value={summary?.newThisWeek ?? '—'} hint="Joined in the last 7 days" icon={<UserPlus className="h-5 w-5" />} />
@@ -131,12 +132,17 @@ export default function DatingUsersPage() {
                       <p>{date(u.createdAt)}</p>
                       {u.lastLogin && <p className="text-xs text-gray-500">seen {date(u.lastLogin)}</p>}
                     </td>
-                    <td className={td}>{u.isActive ? <StatusBadge status="ACTIVE" label="Active" /> : <StatusBadge status="SUSPENDED" label="Deactivated" />}</td>
+                    <td className={td}>
+                      {u.accountStatus === 'SUSPENDED' ? <StatusBadge status="SUSPENDED" label="Suspended" />
+                        : u.accountStatus === 'DEACTIVATED' ? <StatusBadge status="DEACTIVATED" label="Deactivated" />
+                        : u.isActive ? <StatusBadge status="ACTIVE" label="Active" />
+                        : <StatusBadge status="PENDING" label="Payment pending" />}
+                    </td>
                     <td className={`${td} whitespace-nowrap text-right`}>
                       <div className="flex flex-col items-end gap-1.5">
                         <Link href={`/dating-users/${u.id}`} className="text-xs font-medium text-gray-700 hover:text-gray-900">View</Link>
-                        <button type="button" disabled={busy === u.id} onClick={() => toggleActive(u)} className={`text-xs font-medium disabled:opacity-40 ${u.isActive ? 'text-red-700' : 'text-green-700'}`}>
-                          {u.isActive ? 'Deactivate' : 'Activate'}
+                        <button type="button" disabled={busy === u.id} onClick={() => toggleActive(u)} className={`text-xs font-medium disabled:opacity-40 ${(u.accountStatus ?? 'ACTIVE') === 'ACTIVE' ? 'text-red-700' : 'text-green-700'}`}>
+                          {(u.accountStatus ?? 'ACTIVE') === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
                         </button>
                       </div>
                     </td>
