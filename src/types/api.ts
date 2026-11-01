@@ -138,6 +138,10 @@ export interface User {
   displayName?: string;
   role: UserRole;
   isActive: boolean;
+  /** ACTIVE, DEACTIVATED (by the member), SUSPENDED (by an admin) or DELETED */
+  accountStatus?: AccountStatus;
+  statusReason?: string | null;
+  statusChangedAt?: string | null;
   walletBalance: number;
   referralCode?: string;
   referredBy?: string;
@@ -145,6 +149,8 @@ export interface User {
   createdAt: string;
   updatedAt: string;
 }
+
+export type AccountStatus = 'ACTIVE' | 'DEACTIVATED' | 'SUSPENDED' | 'DELETED';
 
 export interface UserListParams {
   page?: number;

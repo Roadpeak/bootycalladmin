@@ -18,6 +18,7 @@ import {
     EyeOff,
     X
 } from 'lucide-react';
+import { StatusBadge } from '@/components/admin/ui';
 
 export default function HookupUsersPage() {
     const [activeTab, setActiveTab] = useState('all');
@@ -79,9 +80,10 @@ export default function HookupUsersPage() {
     // Filter users based on active tab
     const filteredUsers = users.filter(user => {
         if (activeTab === 'all') return true;
-        if (activeTab === 'active') return user.isActive;
-        if (activeTab === 'inactive') return !user.isActive;
-        if (activeTab === 'suspended') return !user.isActive;
+        const status = user.accountStatus ?? 'ACTIVE';
+        if (activeTab === 'active') return status === 'ACTIVE';
+        if (activeTab === 'inactive') return status === 'DEACTIVATED';
+        if (activeTab === 'suspended') return status === 'SUSPENDED';
         return true;
     });
 
@@ -110,9 +112,7 @@ export default function HookupUsersPage() {
         if (!selectedUser) return;
 
         try {
-            await adminService.updateUserStatus(selectedUser.id, {
-                isActive: false
-            });
+            await adminService.suspendUser(selectedUser.id);
 
             setShowSuspendModal(false);
             fetchUsers(); // Refresh the list
@@ -239,7 +239,7 @@ export default function HookupUsersPage() {
                             : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
-                        Inactive
+                        Deactivated
                     </button>
                     <button
                         onClick={() => setActiveTab('suspended')}
@@ -342,13 +342,10 @@ export default function HookupUsersPage() {
                                                 <div className="text-sm text-gray-500">{user.phone}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                    user.isActive
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {user.isActive ? 'Active' : 'Suspended'}
-                                                </span>
+                                                <StatusBadge
+                                                    status={user.accountStatus ?? 'ACTIVE'}
+                                                    label={{ ACTIVE: 'Active', DEACTIVATED: 'Deactivated', SUSPENDED: 'Suspended', DELETED: 'Deleted' }[user.accountStatus ?? 'ACTIVE']}
+                                                />
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <div className="flex flex-col">
@@ -384,7 +381,7 @@ export default function HookupUsersPage() {
                                                             <Link href={`/hookup-users/${user.id}/edit`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                                 Edit Profile
                                                             </Link>
-                                                            {user.isActive ? (
+                                                            {(user.accountStatus ?? 'ACTIVE') === 'ACTIVE' ? (
                                                                 <button
                                                                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                                                                     onClick={() => handleSuspendUser(user)}
@@ -396,7 +393,7 @@ export default function HookupUsersPage() {
                                                                     className="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100"
                                                                     onClick={async () => {
                                                                         try {
-                                                                            await adminService.updateUserStatus(user.id, { isActive: true });
+                                                                            await adminService.reactivateUser(user.id);
                                                                             fetchUsers();
                                                                         } catch (err) {
                                                                             alert(handleApiError(err));

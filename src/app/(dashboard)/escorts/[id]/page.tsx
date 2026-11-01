@@ -9,6 +9,7 @@ import { getEscortDetail, type EscortDetail } from '@/lib/api/insights';
 import {
   StatusBadge, TierBadge, Avatar, ErrorBanner, imageSrc, money, date, dateTime, personName, th, td, TIER_LABEL,
 } from '@/components/admin/ui';
+import AccountStatusCard from '@/components/admin/AccountStatusCard';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -94,7 +95,7 @@ export default function EscortDetailPage() {
             <button type="button" disabled={busy} onClick={() => update({ moderationStatus: 'APPROVED' })} className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-40">Approve profile</button>
           )}
           {escort.moderationStatus === 'APPROVED' && (
-            <button type="button" disabled={busy} onClick={() => update({ moderationStatus: 'SUSPENDED' })} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 disabled:opacity-40">Suspend</button>
+            <button type="button" disabled={busy} onClick={() => update({ moderationStatus: 'SUSPENDED' })} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 disabled:opacity-40">Suspend listing</button>
           )}
           {escort.moderationStatus === 'PENDING' && (
             <button type="button" disabled={busy} onClick={() => update({ moderationStatus: 'REJECTED' })} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 disabled:opacity-40">Reject</button>
@@ -104,6 +105,16 @@ export default function EscortDetailPage() {
           </button>
         </div>
       </div>
+
+      <AccountStatusCard
+        userId={escort.user.id}
+        status={escort.user.accountStatus}
+        reason={escort.user.statusReason}
+        changedAt={escort.user.statusChangedAt}
+        walletBalance={escort.user.walletBalance}
+        onChanged={() => setReload((n) => n + 1)}
+        onDeleted={() => { window.location.href = '/escorts'; }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -212,7 +223,6 @@ export default function EscortDetailPage() {
               <Field label="Last seen">{date(escort.user.lastLogin)}</Field>
               <Field label="Wallet">{money(escort.user.walletBalance)}</Field>
               <Field label="Referral code">{escort.user.referralCode}</Field>
-              <Field label="Account">{escort.user.isActive ? 'Active' : 'Deactivated'}</Field>
             </div>
           </Section>
 
