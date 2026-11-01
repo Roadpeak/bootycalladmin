@@ -93,7 +93,7 @@ export default function EscortsPage() {
             options={[
               { value: 'all', label: 'All', count: summary?.total },
               ...(['VVIP', 'VIP', 'PRIME', 'REGULAR'] as const).map((t) => ({ value: t, label: TIER_LABEL[t], count: summary?.byTier[t] })),
-              { value: 'NONE', label: 'No plan', count: summary?.withoutPlan },
+              { value: 'NONE', label: 'Free (no plan)', count: summary?.withoutPlan },
             ]}
           />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
