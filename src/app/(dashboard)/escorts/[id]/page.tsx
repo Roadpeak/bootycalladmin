@@ -130,7 +130,7 @@ export default function EscortDetailPage() {
                 <Field label="Current"><TierBadge tier={escort.currentPlan.tier} /></Field>
                 <Field label="Started">{date(escort.currentPlan.startsAt)}</Field>
                 <Field label="Ends">{date(escort.currentPlan.expiresAt)}</Field>
-                <Field label="Paid">{escort.currentPlan.amountPaid ? money(escort.currentPlan.amountPaid) : 'Resumed after upgrade'}</Field>
+                <Field label="Paid">{escort.currentPlan.isFreeTrial ? 'Free signup trial' : escort.currentPlan.amountPaid ? money(escort.currentPlan.amountPaid) : 'Resumed after upgrade'}</Field>
               </div>
             ) : <p className="text-sm text-gray-600">No plan running. {escort.paidUntil ? '' : 'Contact details need an unlock to view.'}</p>}
             {escort.queuedPlans.length > 0 && (

@@ -96,7 +96,7 @@ export interface AdminEscort {
   age: number | null;
   city: string | null;
   area: string | null;
-  currentPlan: (PlanSpan & { amountPaid: number }) | null;
+  currentPlan: (PlanSpan & { amountPaid: number; isFreeTrial?: boolean }) | null;
   queuedPlans: PlanSpan[];
   paidUntil: string | null;
   totalViews?: number;
