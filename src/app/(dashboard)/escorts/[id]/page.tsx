@@ -143,7 +143,7 @@ export default function EscortDetailPage() {
                 <Field label="Ends">{date(escort.currentPlan.expiresAt)}</Field>
                 <Field label="Paid">{escort.currentPlan.isFreeTrial ? 'Free signup trial' : escort.currentPlan.amountPaid ? money(escort.currentPlan.amountPaid) : 'Resumed after upgrade'}</Field>
               </div>
-            ) : <p className="text-sm text-gray-600">No plan running. {escort.paidUntil ? '' : 'Contact details need an unlock to view.'}</p>}
+            ) : <p className="text-sm text-gray-600">No plan running. {escort.paidUntil ? '' : 'Listed in the Free section, after every paid tier.'}</p>}
             {escort.queuedPlans.length > 0 && (
               <p className="mt-3 text-sm text-gray-600">
                 Queued: {escort.queuedPlans.map((q) => `${TIER_LABEL[q.tier]} ${date(q.startsAt)} – ${date(q.expiresAt)}`).join(' · ')}. Paid until {date(escort.paidUntil)}.
@@ -230,8 +230,8 @@ export default function EscortDetailPage() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Profile views"><span className="inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5 text-gray-400" />{escort.totalViews ?? 0}</span></Field>
               <Field label="Rating"><span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-gray-400" />{Number(escort.averageRating ?? 0).toFixed(1)} ({escort.reviewCount ?? 0})</span></Field>
-              <Field label="Contact unlocks"><span className="inline-flex items-center gap-1"><Unlock className="h-3.5 w-3.5 text-gray-400" />{escort.unlocks.count}</span></Field>
-              <Field label="Unlock revenue">{money(escort.unlocks.revenue)}</Field>
+              <Field label="Past contact unlocks"><span className="inline-flex items-center gap-1"><Unlock className="h-3.5 w-3.5 text-gray-400" />{escort.unlocks.count}</span></Field>
+              <Field label="Past unlock revenue">{money(escort.unlocks.revenue)}</Field>
             </div>
           </Section>
 

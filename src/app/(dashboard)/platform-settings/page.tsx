@@ -36,12 +36,20 @@ const SCOPE_LABELS: Record<RevenueScope, { title: string; description: string }>
   },
 };
 
+/**
+ * Escort contacts are free to view now, so the unlock fee and its revenue
+ * split no longer do anything. They stay in the database for past payments
+ * but are not shown here.
+ */
+const RETIRED_SETTINGS = new Set(['UNLOCK_ESCORT_FEE']);
+const RETIRED_SCOPES = new Set<string>(['UNLOCK_ESCORT']);
+
 const SPLIT_FIELDS = [
   { key: 'platformPercent', label: 'Platform', hint: 'Kept by LoveBite' },
   { key: 'serviceFeePercent', label: 'Service fee', hint: "Dev company's paybill" },
   { key: 'level1Percent', label: 'Direct referrer', hint: 'Who invited the payer' },
   { key: 'level2Percent', label: 'Upline referrer', hint: 'Who invited the referrer' },
-  { key: 'escortPercent', label: 'Escort', hint: 'Unlocks only' },
+  { key: 'escortPercent', label: 'Escort', hint: 'Not used by current plans' },
 ] as const;
 
 type SplitFieldKey = (typeof SPLIT_FIELDS)[number]['key'];
@@ -170,7 +178,7 @@ function RevenueSplitsSection({
       </header>
 
       <div className="divide-y divide-gray-200">
-        {splits.map((split) => (
+        {splits.filter((split) => !RETIRED_SCOPES.has(split.scope)).map((split) => (
           <SplitEditor key={split.id} split={split} onSaved={onSaved} />
         ))}
       </div>
@@ -456,6 +464,7 @@ function SettingsSection({
   const byCategory = useMemo(() => {
     const map = new Map<string, PlatformSetting[]>();
     for (const setting of settings) {
+      if (RETIRED_SETTINGS.has(setting.key)) continue;
       const list = map.get(setting.category) ?? [];
       list.push(setting);
       map.set(setting.category, list);
