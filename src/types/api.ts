@@ -491,6 +491,9 @@ export interface ServiceFeeSettlement {
   periodStart: string;
   periodEnd: string;
   shareCount: number;
+  /** PAYBILL = B2B sweep; COMPANY_PHONE = B2C to the company M-Pesa number. */
+  channel?: 'PAYBILL' | 'COMPANY_PHONE';
+  destination?: string | null;
   mpesaTxnId: string | null;
   failureReason: string | null;
   settledAt: string | null;
@@ -506,6 +509,8 @@ export interface ServiceFeeStatus {
   };
   /** False when the M-Pesa payout credentials are not set. */
   payoutsConfigured: boolean;
+  /** The fixed company M-Pesa number the alternate button sends to. */
+  companyPhone?: string;
   settlements: ServiceFeeSettlement[];
 }
 
