@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  AlertCircle, Check, Loader2, Wallet, Send, Building2, RefreshCw,
+  AlertCircle, Check, Loader2, Wallet, Send, Building2, RefreshCw, Smartphone,
 } from 'lucide-react';
 import { adminService, handleApiError } from '@/lib/api';
 import { getWithdrawals, type AdminWithdrawal, type WithdrawalSummary } from '@/lib/api/insights';
@@ -395,7 +395,7 @@ function ServiceFeeTab({
 }) {
   const [status, setStatus] = useState<ServiceFeeStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [settling, setSettling] = useState(false);
+  const [settling, setSettling] = useState<null | 'PAYBILL' | 'COMPANY_PHONE'>(null);
 
   async function load() {
     try {
@@ -414,20 +414,29 @@ function ServiceFeeTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function settle() {
+  async function settle(channel: 'PAYBILL' | 'COMPANY_PHONE') {
+    const phone = formatPhone(status?.companyPhone);
+    if (
+      channel === 'COMPANY_PHONE' &&
+      !window.confirm(`Send ${money(status?.outstanding.amount ?? 0)} to the company M-Pesa number ${phone}?`)
+    ) {
+      return;
+    }
     try {
-      setSettling(true);
-      const result = await adminService.settleServiceFee(true);
+      setSettling(channel);
+      const result = await adminService.settleServiceFee(true, channel);
       onDone(
         result.settled
-          ? `Sending ${money(result.amount)} to the service fee paybill.`
+          ? channel === 'COMPANY_PHONE'
+            ? `Sending ${money(result.amount)} to the company M-Pesa number ${phone}.`
+            : `Sending ${money(result.amount)} to the service fee paybill.`
           : result.reason || 'Nothing to settle.'
       );
       load();
     } catch (err) {
       onError(handleApiError(err));
     } finally {
-      setSettling(false);
+      setSettling(null);
     }
   }
 
@@ -457,19 +466,39 @@ function ServiceFeeTab({
             </p>
           </div>
 
-          <button
-            onClick={settle}
-            disabled={settling || outstanding <= 0 || !status?.payoutsConfigured}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-          >
-            {settling ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Send now
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => settle('PAYBILL')}
+              disabled={!!settling || outstanding <= 0 || !status?.payoutsConfigured}
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+            >
+              {settling === 'PAYBILL' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Send now
+            </button>
+            <button
+              onClick={() => settle('COMPANY_PHONE')}
+              disabled={!!settling || outstanding <= 0 || !status?.payoutsConfigured}
+              className="inline-flex items-center gap-2 rounded-lg border border-indigo-600 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
+            >
+              {settling === 'COMPANY_PHONE' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Smartphone className="h-4 w-4" />
+              )}
+              Send to company M-Pesa
+            </button>
+          </div>
         </div>
+
+        <p className="mt-3 text-xs text-gray-500">
+          <span className="font-medium text-gray-700">Send now</span> pays the service fee
+          paybill (B2B). <span className="font-medium text-gray-700">Send to company M-Pesa</span>{' '}
+          pays the company number {formatPhone(status?.companyPhone)} (B2C).
+        </p>
 
         {!status?.payoutsConfigured && (
           <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -484,7 +513,7 @@ function ServiceFeeTab({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Amount', 'Period', 'Status', 'M-Pesa ref', 'Sent'].map((h) => (
+                {['Amount', 'Sent to', 'Period', 'Status', 'M-Pesa ref', 'Sent'].map((h) => (
                   <th
                     key={h}
                     className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
@@ -498,6 +527,14 @@ function ServiceFeeTab({
               {status.settlements.map((s) => (
                 <tr key={s.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">{money(s.amount)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {s.channel === 'COMPANY_PHONE' ? 'Company M-Pesa' : 'Paybill'}
+                    {s.destination && (
+                      <span className="block text-xs text-gray-400">
+                        {s.channel === 'COMPANY_PHONE' ? formatPhone(s.destination) : s.destination}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {new Date(s.periodStart).toLocaleDateString()} –{' '}
                     {new Date(s.periodEnd).toLocaleDateString()}
@@ -530,4 +567,11 @@ function ServiceFeeTab({
       )}
     </div>
   );
+}
+
+/** 254743007000 -> 0743 007 000 */
+function formatPhone(phone?: string | null) {
+  if (!phone) return '0743 007 000';
+  const local = phone.replace(/^\+?254/, '0');
+  return local.length === 10 ? `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}` : local;
 }

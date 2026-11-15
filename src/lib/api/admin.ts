@@ -279,10 +279,10 @@ export const adminService = {
     return await api.get<ServiceFeeStatus>(API_ENDPOINTS.ADMIN_SERVICE_FEE, { params });
   },
 
-  async settleServiceFee(force = false) {
+  async settleServiceFee(force = false, channel: 'PAYBILL' | 'COMPANY_PHONE' = 'PAYBILL') {
     const response = await api.post<SettlementResult>(
       API_ENDPOINTS.ADMIN_SETTLE_SERVICE_FEE,
-      { force }
+      { force, channel }
     );
     return response.data!;
   },
